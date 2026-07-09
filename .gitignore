@@ -1,0 +1,24 @@
+# temporary file
+temp/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+.vscode/
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+**/packages/
+
+# tModLoader
+*.tmod
+
+# OS
+Thumbs.db

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>WireWarp</AssemblyName>
+    <RootNamespace>WireWarp.Frontend.tModLoader</RootNamespace>
+    <Version>0.1.0</Version>
+    <Author>WireWarp</Author>
+    <DisplayName>WireWarp</DisplayName>
+    <ModSide>Both</ModSide>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\WireWarp.Shared.csproj" />
+    <ProjectReference Include="..\Shared\WireWarp.Frontend.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build.txt" />
+  </ItemGroup>
+
+  <Import Project="tModLoader.targets" />
+</Project>
