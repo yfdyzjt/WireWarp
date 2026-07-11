@@ -1,0 +1,179 @@
+using WireWarp.Frontend.Shared.Terraria.ID;
+
+namespace WireWarp.Frontend.Shared.Terraria;
+
+public static class Detector
+{
+    public static GateID DetectGate(Tile tile)
+    {
+        if (!tile.HasTile || tile.TileType != TileID.LogicGate)
+            return GateID.None;
+
+        return tile.TileFrameX switch
+        {
+            0 * 18 or 1 * 18 => tile.TileFrameY switch
+            {
+                0 * 18 => GateID.AND,
+                1 * 18 => GateID.OR,
+                2 * 18 => GateID.NAND,
+                3 * 18 => GateID.NOR,
+                4 * 18 => GateID.XOR,
+                5 * 18 => GateID.XNOR,
+                _ => GateID.None,
+            },
+            2 * 18 => GateID.Fault,
+            _ => GateID.None,
+        };
+    }
+
+    public static LampID DetectLamp(Tile tile)
+    {
+        if (!tile.HasTile || tile.HasActuator || tile.TileType != TileID.LogicGateLamp)
+            return LampID.None;
+
+        return tile.TileFrameX switch
+        {
+            0 * 18 => LampID.Off,
+            1 * 18 => LampID.On,
+            2 * 18 => LampID.Fault,
+            _ => LampID.None,
+        };
+    }
+
+    public static JunctionBoxID DetectJunctionBox(Tile tile)
+    {
+        if (!tile.HasTile)
+            return JunctionBoxID.None;
+
+        return tile.TileType switch
+        {
+            TileID.PixelBox => JunctionBoxID.UpDown,
+            TileID.WirePipe => tile.TileFrameX switch
+            {
+                0 * 18 => JunctionBoxID.UpDown,
+                1 * 18 => JunctionBoxID.UpLeft,
+                2 * 18 => JunctionBoxID.UpRight,
+                _ => JunctionBoxID.None,
+            },
+            _ => JunctionBoxID.None,
+        };
+    }
+
+    public static InputID DetectInput(Tile tile)
+    {
+        if (!tile.HasTile)
+            return InputID.None;
+
+        return tile.TileType switch
+        {
+            TileID.PressurePlates => InputID.PressurePlates,
+            TileID.MinecartTrack when 20 <= tile.TileFrameX && tile.TileFrameX < 24 => InputID.PressurePlateTrack,
+            TileID.LogicSensor => InputID.LogicSensor,
+            TileID.WeightedPressurePlate => InputID.WeightedPressurePlate,
+            TileID.ProjectilePressurePad => InputID.ProjectilePressurePad,
+            TileID.GolfHole => InputID.GolfHole,
+            TileID.GemLocks => InputID.GemLocks,
+            TileID.Switches => InputID.Switches,
+            TileID.GeyserTrap => InputID.GeyserTrap,
+            TileID.Timers => InputID.Timers,
+            TileID.FakeContainers or TileID.FakeContainers2 => InputID.FakeContainers,
+            TileID.Containers2 when tile.TileFrameX / 36 is 4 => InputID.DeadMansChest,
+            TileID.Lever => InputID.Lever,
+            TileID.Detonator => InputID.Detonator,
+            _ => InputID.None,
+        };
+    }
+
+    public static OutputID DetectOutput(Tile tile)
+    {
+        if (!tile.HasTile)
+            return OutputID.None;
+
+        return tile.TileType switch
+        {
+            _ when tile.HasActuator => OutputID.Actuator,
+            TileID.Timers => OutputID.Timers,
+            TileID.ConveyorBeltLeft or TileID.ConveyorBeltRight => OutputID.ConveyorBelts,
+            _ when TileID.AmethystGemsparkOff <= tile.TileType && tile.TileType <= TileID.AmberGemspark => OutputID.Gemsparks,
+            TileID.Chimney => OutputID.Chimney,
+            TileID.SillyBalloonMachine => OutputID.SillyBalloonMachine,
+            TileID.Detonator => OutputID.Detonator,
+            TileID.Sundial or TileID.Moondial => OutputID.SunAndMoondial,
+            TileID.AnnouncementBox => OutputID.AnnouncementBox,
+            TileID.Fireplace => OutputID.Fireplace,
+            TileID.Cannon => (tile.TileFrameX % 72) switch
+            {
+                0 => OutputID.CannonsLeft,
+                54 => OutputID.CannonsRight,
+                18 or 36 => tile.TileFrameX < 216
+                    ? OutputID.CannonsShot
+                    : (tile.TileFrameY % 54) switch
+                    {
+                        0 or 18 => OutputID.PortalGunStationChange,
+                        36 => OutputID.PortalGunStationShot,
+                        _ => OutputID.None,
+                    },
+                _ => OutputID.None,
+            },
+            TileID.SnowballLauncher => (tile.TileFrameX % 54) switch
+            {
+                0 => OutputID.SnowballLauncherLeft,
+                36 => OutputID.SnowballLauncherRight,
+                18 => OutputID.SnowballLauncherShot,
+                _ => OutputID.None,
+            },
+            TileID.Campfire => OutputID.Campfires,
+            TileID.ActiveStoneBlock or TileID.InactiveStoneBlock => OutputID.ActiveStoneBlocks,
+            TileID.TrapdoorOpen => OutputID.TrapdoorOpen,
+            TileID.TrapdoorClosed => OutputID.TrapdoorClosed,
+            TileID.TallGateOpen or TileID.TallGateClosed => OutputID.TallGates,
+            TileID.OpenDoor => OutputID.OpenDoors,
+            TileID.ClosedDoor => OutputID.ClosedDoors,
+            TileID.Firework => OutputID.Fireworks,
+            TileID.Toilets => OutputID.Toilets,
+            TileID.Chairs when tile.TileFrameY / 40 is 1 or 20 => OutputID.Toilets,
+            TileID.FireworksBox => OutputID.FireworksBox,
+            TileID.FireworkFountain => OutputID.FireworkFountain,
+            TileID.Teleporter => OutputID.Teleporter,
+            TileID.Torches => OutputID.Torches,
+            TileID.WireBulb => OutputID.WireBulb,
+            TileID.HolidayLights => OutputID.HolidayLights,
+            TileID.BubbleMachine => OutputID.BubbleMachine,
+            TileID.FogMachine => OutputID.FogMachine,
+            TileID.HangingLanterns => OutputID.HangingLanterns,
+            TileID.Lamps => OutputID.Lamps,
+            TileID.DiscoBall or TileID.ChineseLanterns or TileID.Candelabras or
+            TileID.PlatinumCandelabra or TileID.PlasmaLamp => OutputID.Lights,
+            TileID.VolcanoSmall => OutputID.VolcanoSmall,
+            TileID.VolcanoLarge => OutputID.VolcanoLarge,
+            TileID.Chandeliers => OutputID.Chandeliers,
+            TileID.MinecartTrack when (30 <= tile.TileFrameX && tile.TileFrameX < 36) ||
+                ((tile.TileFrameX < 20 || (23 < tile.TileFrameX && tile.TileFrameX < 30)) &&
+                 tile.TileFrameY != -1) => OutputID.MinecartTrack,
+            TileID.Candles or TileID.PlatinumCandle or TileID.WaterCandle or
+            TileID.PeaceCandle or TileID.ShadowCandle => OutputID.Candles,
+            TileID.Lampposts => OutputID.Lampposts,
+            TileID.Traps => OutputID.Traps,
+            TileID.GeyserTrap => OutputID.GeyserTrap,
+            TileID.MusicBoxes or TileID.Jackolanterns => OutputID.MusicBoxes,
+            TileID.WaterFountain => OutputID.WaterFountain,
+            TileID.LunarMonolith or TileID.BloodMoonMonolith or
+            TileID.VoidMonolith or TileID.EchoMonolith or
+            TileID.ShimmerMonolith or TileID.CRTMonolith or
+            TileID.RetroMonolith or TileID.NoirMonolith or
+            TileID.RadioThingMonolith => OutputID.Monoliths,
+            TileID.PartyMonolith => OutputID.PartyMonolith,
+            TileID.Explosives => OutputID.Explosives,
+            TileID.LandMine => OutputID.LandMine,
+            TileID.InletPump or TileID.OutletPump => OutputID.Pumps,
+            TileID.BoulderStatue or TileID.MushroomStatue or
+            TileID.CatBast => OutputID.Statues,
+            TileID.Statues when !(tile.TileFrameX / 36 is 0 or 1 or 3 or 6 or 11 or 12 or 14 or 15 or 19 or
+                20 or 21 or 22 or 24 or 25 or 26 or 29 or 31 or 32 or 33 or 36 or 38 or 39 or 43 or 44 or 45)
+                => OutputID.Statues,
+            TileID.Grate or TileID.GrateClosed => OutputID.Grates,
+            TileID.PixelBox => OutputID.PixelBox,
+            _ => OutputID.None,
+        };
+    }
+}
