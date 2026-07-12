@@ -1,9 +1,22 @@
+using WireWarp.Frontend.Shared.Terraria;
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.Terraria;
+namespace WireWarp.Frontend.Shared.Conversion.Preprocess;
 
 public static class Detector
 {
+    public static bool HasWire(Tile tile) =>
+        tile.RedWire || tile.BlueWire || tile.GreenWire || tile.YellowWire;
+
+    public static bool HasWire(Tile tile, WireID color) => color switch
+    {
+        WireID.Red => tile.RedWire,
+        WireID.Blue => tile.BlueWire,
+        WireID.Green => tile.GreenWire,
+        WireID.Yellow => tile.YellowWire,
+        _ => false,
+    };
+
     public static GateID DetectGate(Tile tile)
     {
         if (!tile.HasTile || tile.TileType != TileID.LogicGate)

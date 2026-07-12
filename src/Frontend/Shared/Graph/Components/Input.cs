@@ -1,11 +1,11 @@
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.WiringGraph;
+namespace WireWarp.Frontend.Shared.Graph;
 
-public class Lamp : IConnectable
+public class Input : IConnectable
 {
     public int Id { get; set; }
-    public LampID Type { get; set; }
+    public InputID Type { get; set; }
     public int X { get; set; }
     public int Y { get; set; }
 

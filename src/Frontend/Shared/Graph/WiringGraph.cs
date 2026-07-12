@@ -1,6 +1,6 @@
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.WiringGraph;
+namespace WireWarp.Frontend.Shared.Graph;
 
 public class WiringGraph
 {
@@ -112,9 +112,9 @@ public class WiringGraph
         }
     }
 
-    // compact node
+    // set node id
 
-    public void CompactNode()
+    public void SetNodeID()
     {
         for (var i = 0; i < _wires.Count; i++) _wires[i].Id = i;
         for (var i = 0; i < _gates.Count; i++) _gates[i].Id = i;
