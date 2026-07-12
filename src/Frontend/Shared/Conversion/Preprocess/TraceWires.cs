@@ -34,7 +34,7 @@ public static class TraceWires
         Dictionary<(int x, int y), Lamp> lamps,
         Dictionary<(int x, int y), Output> outputs)
     {
-        foreach (var color in Enum.GetValues<WireID>())
+        foreach (var color in new[] { WireID.Red, WireID.Blue, WireID.Green, WireID.Yellow })
         {
             if (!Detector.HasWire(world.GetTile(start.x, start.y), color))
                 continue;
@@ -137,10 +137,10 @@ public static class TraceWires
 
         if (outputs.TryGetValue(pos, out var output))
         {
-            var op = output.Fanout.OfType<OutputPort>().FirstOrDefault()
+            var op = output.Fanin.OfType<OutputPort>().FirstOrDefault()
                      ?? graph.AddOutputPort();
-            WiringGraph.AddEdge(output, op);
-            WiringGraph.AddEdge(op, wire);
+            WiringGraph.AddEdge(wire, op);
+            WiringGraph.AddEdge(op, output);
         }
     }
     private static List<Lamp> FindLamps(Gate gate, Dictionary<(int x, int y), Lamp> lamps)

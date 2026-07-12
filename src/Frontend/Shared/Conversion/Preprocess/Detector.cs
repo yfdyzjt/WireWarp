@@ -189,4 +189,47 @@ public static class Detector
             _ => OutputID.None,
         };
     }
+
+    public static (int x, int y) GetInputSize(InputID type) => type switch
+    {
+        InputID.GemLocks => (3, 3),
+        InputID.Lever or InputID.Detonator or InputID.DeadMansChest or InputID.FakeContainers => (2, 2),
+        InputID.GeyserTrap => (2, 1),
+        _ => (1, 1),
+    };
+
+    public static (int x, int y) GetOutputSize(OutputID type) => type switch
+    {
+        OutputID.Lampposts => (1, 6),
+        OutputID.TallGates => (1, 5),
+        OutputID.SillyBalloonMachine or OutputID.Chimney or
+        OutputID.Chandeliers or OutputID.PartyMonolith => (3, 3),
+        OutputID.Fireplace or OutputID.Campfires or OutputID.BubbleMachine => (3, 2),
+        OutputID.CannonsShot or OutputID.SunAndMoondial or OutputID.OpenDoors or
+        OutputID.WaterFountain or OutputID.Monoliths or OutputID.Statues => (2, 3),
+        OutputID.Teleporter => (3, 1),
+        OutputID.SnowballLauncherRight or OutputID.SnowballLauncherLeft or
+        OutputID.SnowballLauncherShot or OutputID.CannonsRight or OutputID.CannonsLeft or
+        OutputID.ClosedDoors or OutputID.Lamps => (1, 3),
+        OutputID.PortalGunStationChange or OutputID.Detonator or
+        OutputID.AnnouncementBox or OutputID.TrapdoorOpen or OutputID.FireworksBox or
+        OutputID.FogMachine or OutputID.Lights or OutputID.VolcanoLarge or
+        OutputID.MusicBoxes or OutputID.Pumps => (2, 2),
+        OutputID.PortalGunStationShot or OutputID.TrapdoorClosed or OutputID.GeyserTrap => (2, 1),
+        OutputID.Fireworks or OutputID.Toilets or OutputID.FireworkFountain or
+        OutputID.HangingLanterns => (1, 2),
+        _ => (1, 1),
+    };
+
+    public static (int x, int y) GetInputOrigin(InputID type, int x, int y, short frameX, short frameY)
+    {
+        var (sx, sy) = GetInputSize(type);
+        return (x - frameX % (sx * 18) / 18, y - frameY % (sy * 18) / 18);
+    }
+
+    public static (int x, int y) GetOutputOrigin(OutputID type, int x, int y, short frameX, short frameY)
+    {
+        var (sx, sy) = GetOutputSize(type);
+        return (x - frameX % (sx * 18) / 18, y - frameY % (sy * 18) / 18);
+    }
 }
