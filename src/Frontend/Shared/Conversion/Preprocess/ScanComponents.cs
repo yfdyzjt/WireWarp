@@ -19,6 +19,9 @@ public static class ScanComponents
         lamps = [];
         outputs = [];
 
+        var inputByOrigin = new Dictionary<(int x, int y, InputID type), Input>();
+        var outputByOrigin = new Dictionary<(int x, int y, OutputID type), Output>();
+
         var w = world.GetWorldWidth();
         var h = world.GetWorldHeight();
 
@@ -47,16 +50,38 @@ public static class ScanComponents
                 if (inputType != InputID.None && Detector.HasWire(tile))
                 {
                     var origin = Detector.GetInputOrigin(inputType, x, y, tile.TileFrameX, tile.TileFrameY);
-                    inputs[(x, y)] = graph.AddInput(inputType, origin.x, origin.y);
+                    var size = Detector.GetInputSize(inputType);
+                    var inRange = InRange(x, y, origin, size);
+                    var key = (origin.x, origin.y, inputType);
+
+                    var input = inRange && inputByOrigin.TryGetValue(key, out var merged)
+                        ? merged
+                        : graph.AddInput(inputType, origin.x, origin.y);
+
+                    if (inRange) inputByOrigin[key] = input;
+                    inputs[(x, y)] = input;
                 }
 
                 var outputType = Detector.DetectOutput(tile);
                 if (outputType != OutputID.None && Detector.HasWire(tile))
                 {
                     var origin = Detector.GetOutputOrigin(outputType, x, y, tile.TileFrameX, tile.TileFrameY);
-                    outputs[(x, y)] = graph.AddOutput(outputType, origin.x, origin.y);
+                    var size = Detector.GetOutputSize(outputType);
+                    var inRange = InRange(x, y, origin, size);
+                    var key = (origin.x, origin.y, outputType);
+
+                    var output = inRange && outputByOrigin.TryGetValue(key, out var merged)
+                        ? merged
+                        : graph.AddOutput(outputType, origin.x, origin.y);
+
+                    if (inRange) outputByOrigin[key] = output;
+                    outputs[(x, y)] = output;
                 }
             }
         }
     }
+    
+    private static bool InRange(int x, int y, (int x, int y) origin, (int x, int y) size)
+        => x >= origin.x && x < origin.x + size.x
+        && y >= origin.y && y < origin.y + size.y;
 }

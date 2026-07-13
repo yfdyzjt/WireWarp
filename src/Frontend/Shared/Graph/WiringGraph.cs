@@ -111,17 +111,4 @@ public class WiringGraph
             case OutputPort op: _outputPorts.Remove(op); break;
         }
     }
-
-    // set node id
-
-    public void SetNodeID()
-    {
-        for (var i = 0; i < _wires.Count; i++) _wires[i].Id = i;
-        for (var i = 0; i < _gates.Count; i++) _gates[i].Id = i;
-        for (var i = 0; i < _lamps.Count; i++) _lamps[i].Id = i;
-        for (var i = 0; i < _inputs.Count; i++) _inputs[i].Id = i;
-        for (var i = 0; i < _inputPorts.Count; i++) _inputPorts[i].Id = i;
-        for (var i = 0; i < _outputs.Count; i++) _outputs[i].Id = i;
-        for (var i = 0; i < _outputPorts.Count; i++) _outputPorts[i].Id = i;
-    }
 }
