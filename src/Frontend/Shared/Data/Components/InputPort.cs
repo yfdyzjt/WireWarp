@@ -1,6 +1,6 @@
-namespace WireWarp.Frontend.Shared.Graph;
+namespace WireWarp.Frontend.Shared.Data;
 
-public class OutputPort : IConnectable
+public class InputPort : IConnectable
 {
     public int Id { get; set; }
 

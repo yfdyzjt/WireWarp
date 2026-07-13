@@ -1,4 +1,4 @@
-namespace WireWarp.Frontend.Shared.Graph;
+namespace WireWarp.Frontend.Shared.Data;
 
 public interface IConnectable
 {

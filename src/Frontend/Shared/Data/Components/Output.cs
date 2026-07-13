@@ -1,11 +1,11 @@
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.Graph;
+namespace WireWarp.Frontend.Shared.Data;
 
-public class Input : IConnectable
+public class Output : IConnectable
 {
     public int Id { get; set; }
-    public InputID Type { get; set; }
+    public OutputID Type { get; set; }
     public int X { get; set; }
     public int Y { get; set; }
 

@@ -1,6 +1,6 @@
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.Graph;
+namespace WireWarp.Frontend.Shared.Data;
 
 public class WiringGraph
 {
@@ -20,7 +20,7 @@ public class WiringGraph
     public IReadOnlyList<Output> Outputs => _outputs;
     public IReadOnlyList<OutputPort> OutputPorts => _outputPorts;
 
-    // add edge
+    // edge
 
     public static void AddEdge(IConnectable from, IConnectable to)
     {
@@ -28,15 +28,13 @@ public class WiringGraph
         to.Fanin.Add(from);
     }
 
-    // remove edge
-
     public static void RemoveEdge(IConnectable from, IConnectable to)
     {
         from.Fanout.Remove(to);
         to.Fanin.Remove(from);
     }
 
-    // add node
+    // node
 
     public Wire AddWire(WireID type)
     {
@@ -86,8 +84,6 @@ public class WiringGraph
         _outputPorts.Add(node);
         return node;
     }
-
-    // remove node
 
     public void RemoveNode(IConnectable node)
     {

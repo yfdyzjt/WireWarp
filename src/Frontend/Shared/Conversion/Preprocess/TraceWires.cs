@@ -1,4 +1,4 @@
-using WireWarp.Frontend.Shared.Graph;
+using WireWarp.Frontend.Shared.Data;
 using WireWarp.Frontend.Shared.Interfaces;
 using WireWarp.Frontend.Shared.Terraria;
 using WireWarp.Frontend.Shared.Terraria.ID;
