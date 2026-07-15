@@ -8,8 +8,6 @@ public class PixelBox : IOutputProcessor
 {
     public static readonly PixelBox Instance = new();
 
-    public void Clear() {}
-
     public void Process(WiringGraph graph, Output output, ITileAccessor world)
     {
         var sources = new HashSet<IConnectable>();

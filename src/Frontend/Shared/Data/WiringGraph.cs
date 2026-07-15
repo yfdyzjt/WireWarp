@@ -4,6 +4,8 @@ namespace WireWarp.Frontend.Shared.Data;
 
 public class WiringGraph
 {
+    public ExtraData ExtraData { get; } = new();
+
     private readonly List<Wire> _wires = [];
     private readonly List<Gate> _gates = [];
     private readonly List<Lamp> _lamps = [];

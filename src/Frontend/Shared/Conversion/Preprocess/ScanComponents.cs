@@ -6,13 +6,13 @@ namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class ScanComponents
 {
-    public static void Execute(ITileAccessor world, WiringGraph graph)
+    public static void Execute(WiringGraph graph, ITileAccessor world)
     {
-        Scan(world, graph);
+        Scan(graph, world);
         CreatePorts(graph);
     }
 
-    private static void Scan(ITileAccessor world, WiringGraph graph)
+    private static void Scan(WiringGraph graph, ITileAccessor world)
     {
         var inputByOrigin = new Dictionary<(int x, int y, InputID type), Input>();
         var outputByOrigin = new Dictionary<(int x, int y, OutputID type), Output>();

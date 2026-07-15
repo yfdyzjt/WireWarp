@@ -7,8 +7,6 @@ public class Timers : IOutputProcessor
 {
     public static readonly Timers Instance = new();
 
-    public void Clear() { }
-
     public void Process(WiringGraph graph, Output output, ITileAccessor world)
     {
         // Timer output cannot directly activate itself.

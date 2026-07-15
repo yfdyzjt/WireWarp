@@ -7,32 +7,24 @@ namespace WireWarp.Frontend.Shared.IO;
 public class Teleporter : IOutputProcessor
 {
     public static readonly Teleporter Instance = new();
-
-    private readonly Dictionary<Wire, (OutputPort minPort, Output source, Output target)> _pairs = [];
-
-    public void Clear()
-    {
-        Data.Teleporter.Clear();
-        _pairs.Clear();
-    }
-
+    
     public void Process(WiringGraph graph, Output output, ITileAccessor world)
     {
         foreach (var op in output.Fanin.OfType<OutputPort>().ToList())
         {
             var wire = op.Fanin.OfType<Wire>().First();
 
-            if (!_pairs.ContainsKey(wire))
-                Analyze(wire, graph, world);
+            var (minPort, source, target) = Analyze(wire, graph, world);
 
-            if (_pairs.TryGetValue(wire, out var pair) && pair.minPort == op)
-                Data.Teleporter.Data[op] = (pair.source, pair.target);
+            if (minPort != null && source != null && target != null && minPort == op)
+                graph.ExtraData.Teleporter[op] = (source, target);
             else
                 graph.RemoveNode(op);
         }
     }
 
-    private void Analyze(Wire wire, WiringGraph graph, ITileAccessor world)
+    private static (OutputPort? minPort, Output? source, Output? target) Analyze(
+        Wire wire, WiringGraph graph, ITileAccessor world)
     {
         var visited = new Dictionary<((int, int), WireID), Wire>();
         var found = new List<(Output output, OutputPort port, int level)>();
@@ -52,12 +44,13 @@ public class Teleporter : IOutputProcessor
                     found.Add((foundOutput, foundPort, level));
             });
 
-        if (found.Count < 2) return;
+        if (found.Count < 2) return (null, null, null);
 
         var min = found.MinBy(f => f.level);
         var max = found.MaxBy(f => f.level);
 
-        if (min.port != max.port)
-            _pairs[wire] = (min.port, min.output, max.output);
+        if (min.port == max.port) return (null, null, null);
+
+        return (min.port, min.output, max.output);
     }
 }

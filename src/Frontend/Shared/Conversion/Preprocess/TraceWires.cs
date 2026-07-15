@@ -6,7 +6,7 @@ namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class TraceWires
 {
-    public static void Execute(ITileAccessor world, WiringGraph graph)
+    public static void Execute(WiringGraph graph, ITileAccessor world)
     {
         var wireByTile = new Dictionary<((int x, int y) pos, WireID color), Wire>();
 

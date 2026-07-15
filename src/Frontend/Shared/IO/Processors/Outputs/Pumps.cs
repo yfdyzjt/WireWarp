@@ -7,32 +7,24 @@ namespace WireWarp.Frontend.Shared.IO;
 public class Pumps : IOutputProcessor
 {
     public static readonly Pumps Instance = new();
-
-    private readonly Dictionary<Wire, (List<Output> inlets, List<Output> outlets)> _pairs = [];
-
-    public void Clear()
-    {
-        Data.Pumps.Clear();
-        _pairs.Clear();
-    }
-
+    
     public void Process(WiringGraph graph, Output output, ITileAccessor world)
     {
         foreach (var op in output.Fanin.OfType<OutputPort>().ToList())
         {
             var wire = op.Fanin.OfType<Wire>().First();
 
-            if (!_pairs.ContainsKey(wire))
-                Analyze(wire, graph, world);
+            var (inlets, outlets) = Analyze(wire, graph, world);
 
-            if (_pairs.TryGetValue(wire, out var pair) && pair.inlets[0] == output)
-                Data.Pumps.Data[op] = pair;
+            if (inlets != null && inlets[0] == output)
+                graph.ExtraData.Pumps[op] = (inlets, outlets!);
             else
                 graph.RemoveNode(op);
         }
     }
 
-    private void Analyze(Wire wire, WiringGraph graph, ITileAccessor world)
+    private static (List<Output>? inlets, List<Output>? outlets) Analyze(
+        Wire wire, WiringGraph graph, ITileAccessor world)
     {
         var inlets = new List<Output>();
         var outlets = new List<Output>();
@@ -53,7 +45,9 @@ public class Pumps : IOutputProcessor
                     outlets.Add(o);
             });
 
-        if (inlets.Count > 0 && outlets.Count > 0)
-            _pairs[wire] = (inlets, outlets);
+        if (inlets.Count == 0 || outlets.Count == 0)
+            return (null, null);
+
+        return (inlets, outlets);
     }
 }
