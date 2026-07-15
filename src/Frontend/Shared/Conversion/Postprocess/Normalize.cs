@@ -1,7 +1,7 @@
 using WireWarp.Frontend.Shared.Data;
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.Conversion.Postprocess;
+namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class Normalize
 {

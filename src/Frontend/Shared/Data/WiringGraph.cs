@@ -20,6 +20,11 @@ public class WiringGraph
     public IReadOnlyList<Output> Outputs => _outputs;
     public IReadOnlyList<OutputPort> OutputPorts => _outputPorts;
 
+    public Dictionary<(int x, int y), Input> InputPos { get; } = [];
+    public Dictionary<(int x, int y), Gate> GatePos { get; } = [];
+    public Dictionary<(int x, int y), Lamp> LampPos { get; } = [];
+    public Dictionary<(int x, int y), Output> OutputPos { get; } = [];
+
     // edge
 
     public static void AddEdge(IConnectable from, IConnectable to)
@@ -36,9 +41,9 @@ public class WiringGraph
 
     // node
 
-    public Wire AddWire(WireID type)
+    public Wire AddWire(WireID type, int x, int y)
     {
-        var node = new Wire { Type = type };
+        var node = new Wire { Type = type, X = x, Y = y };
         _wires.Add(node);
         return node;
     }
@@ -83,6 +88,29 @@ public class WiringGraph
         var node = new OutputPort();
         _outputPorts.Add(node);
         return node;
+    }
+
+    public IConnectable CopyNode(IConnectable node)
+    {
+        IConnectable copy = node switch
+        {
+            Wire w => AddWire(w.Type, w.X, w.Y),
+            Gate g => AddGate(g.Type, g.X, g.Y),
+            Lamp l => AddLamp(l.Type, l.X, l.Y),
+            Input i => AddInput(i.Type, i.X, i.Y),
+            InputPort => AddInputPort(),
+            Output o => AddOutput(o.Type, o.X, o.Y),
+            OutputPort => AddOutputPort(),
+            _ => node
+        };
+
+        foreach (var source in node.Fanin)
+            AddEdge(source, copy);
+
+        foreach (var target in node.Fanout)
+            AddEdge(copy, target);
+
+        return copy;
     }
 
     public void RemoveNode(IConnectable node)

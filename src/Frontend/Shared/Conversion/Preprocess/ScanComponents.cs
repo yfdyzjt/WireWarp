@@ -2,23 +2,18 @@ using WireWarp.Frontend.Shared.Data;
 using WireWarp.Frontend.Shared.Interfaces;
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.Conversion.Preprocess;
+namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class ScanComponents
 {
-    public static void Execute(
-        ITileAccessor world,
-        WiringGraph graph,
-        out Dictionary<(int x, int y), Input> inputs,
-        out Dictionary<(int x, int y), Gate> gates,
-        out Dictionary<(int x, int y), Lamp> lamps,
-        out Dictionary<(int x, int y), Output> outputs)
+    public static void Execute(ITileAccessor world, WiringGraph graph)
     {
-        inputs = [];
-        gates = [];
-        lamps = [];
-        outputs = [];
+        Scan(world, graph);
+        CreatePorts(graph);
+    }
 
+    private static void Scan(ITileAccessor world, WiringGraph graph)
+    {
         var inputByOrigin = new Dictionary<(int x, int y, InputID type), Input>();
         var outputByOrigin = new Dictionary<(int x, int y, OutputID type), Output>();
 
@@ -35,14 +30,14 @@ public static class ScanComponents
                 var gateType = Detector.DetectGate(tile);
                 if (gateType != GateID.None)
                 {
-                    gates[(x, y)] = graph.AddGate(gateType, x, y);
+                    graph.GatePos[(x, y)] = graph.AddGate(gateType, x, y);
                     continue;
                 }
 
                 var lampType = Detector.DetectLamp(tile);
                 if (lampType != LampID.None)
                 {
-                    lamps[(x, y)] = graph.AddLamp(lampType, x, y);
+                    graph.LampPos[(x, y)] = graph.AddLamp(lampType, x, y);
                     continue;
                 }
 
@@ -59,7 +54,7 @@ public static class ScanComponents
                         : graph.AddInput(inputType, origin.x, origin.y);
 
                     if (inRange) inputByOrigin[key] = input;
-                    inputs[(x, y)] = input;
+                    graph.InputPos[(x, y)] = input;
                 }
 
                 var outputType = Detector.DetectOutput(tile);
@@ -75,12 +70,23 @@ public static class ScanComponents
                         : graph.AddOutput(outputType, origin.x, origin.y);
 
                     if (inRange) outputByOrigin[key] = output;
-                    outputs[(x, y)] = output;
+                    graph.OutputPos[(x, y)] = output;
                 }
             }
         }
     }
-    
+
+    private static void CreatePorts(WiringGraph graph)
+    {
+        foreach (var input in graph.Inputs)
+            if (!input.Fanout.OfType<InputPort>().Any())
+                WiringGraph.AddEdge(input, graph.AddInputPort());
+
+        foreach (var output in graph.Outputs)
+            if (!output.Fanin.OfType<OutputPort>().Any())
+                WiringGraph.AddEdge(graph.AddOutputPort(), output);
+    }
+
     private static bool InRange(int x, int y, (int x, int y) origin, (int x, int y) size)
         => x >= origin.x && x < origin.x + size.x
         && y >= origin.y && y < origin.y + size.y;

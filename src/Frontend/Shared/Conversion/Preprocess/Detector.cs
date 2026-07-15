@@ -1,7 +1,7 @@
 using WireWarp.Frontend.Shared.Terraria;
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.Conversion.Preprocess;
+namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class Detector
 {

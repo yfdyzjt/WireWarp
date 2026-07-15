@@ -1,49 +1,52 @@
 using WireWarp.Frontend.Shared.Data;
 using WireWarp.Frontend.Shared.Interfaces;
-using WireWarp.Frontend.Shared.Terraria;
 using WireWarp.Frontend.Shared.Terraria.ID;
 
-namespace WireWarp.Frontend.Shared.Conversion.Preprocess;
+namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class TraceWires
 {
-    public static void Execute(
-        ITileAccessor world,
-        WiringGraph graph,
-        Dictionary<(int x, int y), Input> inputs,
-        Dictionary<(int x, int y), Gate> gates,
-        Dictionary<(int x, int y), Lamp> lamps,
-        Dictionary<(int x, int y), Output> outputs)
+    public static void Execute(ITileAccessor world, WiringGraph graph)
     {
-        var visited = new HashSet<((int x, int y) pos, WireID color)>();
+        var wireByTile = new Dictionary<((int x, int y) pos, WireID color), Wire>();
 
-        foreach (var (pos, _) in inputs)
-            TraceSource(pos, graph, world, visited, inputs, gates, lamps, outputs);
+        foreach (var (pos, input) in graph.InputPos)
+            TraceSource(pos, input, graph, world, wireByTile);
 
-        foreach (var (pos, _) in gates)
-            TraceSource(pos, graph, world, visited, inputs, gates, lamps, outputs);
+        foreach (var (pos, gate) in graph.GatePos)
+            TraceSource(pos, gate, graph, world, wireByTile);
     }
 
     private static void TraceSource(
         (int x, int y) start,
+        IConnectable source,
         WiringGraph graph,
         ITileAccessor world,
-        HashSet<((int, int), WireID)> visited,
-        Dictionary<(int x, int y), Input> inputs,
-        Dictionary<(int x, int y), Gate> gates,
-        Dictionary<(int x, int y), Lamp> lamps,
-        Dictionary<(int x, int y), Output> outputs)
+        Dictionary<((int, int), WireID), Wire> wireByTile)
     {
         foreach (var color in new[] { WireID.Red, WireID.Blue, WireID.Green, WireID.Yellow })
         {
             if (!Detector.HasWire(world.GetTile(start.x, start.y), color))
                 continue;
 
-            if (visited.Contains((start, color)))
-                continue;
+            if (wireByTile.TryGetValue((start, color), out var oldWire))
+            {
+                var newSource = source is Input si ? si.Fanout.FirstOrDefault() : source;
+                var oldSource = oldWire.Fanin.FirstOrDefault();
+                if (oldSource == null || newSource == null || oldSource == newSource)
+                    continue;
 
-            var wire = graph.AddWire(color);
-            TraceWire(wire, 0, start, start, graph, world, visited, inputs, gates, lamps, outputs);
+                var newWire = graph.CopyNode(oldWire);
+                WiringGraph.RemoveEdge(oldSource, newWire);
+                WiringGraph.AddEdge(newSource, newWire);
+                continue;
+            }
+
+            var input = source is Input i ? i.Fanout.First() : source;
+            var wire = graph.AddWire(color, start.x, start.y);
+
+            WiringGraph.AddEdge(input, wire);
+            TraceWire(wire, 0, start, start, graph, world, wireByTile);
         }
     }
 
@@ -54,14 +57,10 @@ public static class TraceWires
         (int x, int y) prevStart,
         WiringGraph graph,
         ITileAccessor world,
-        HashSet<((int, int), WireID)> visited,
-        Dictionary<(int x, int y), Input> inputs,
-        Dictionary<(int x, int y), Gate> gates,
-        Dictionary<(int x, int y), Lamp> lamps,
-        Dictionary<(int x, int y), Output> outputs,
+        Dictionary<((int, int), WireID), Wire> wireByTile,
         Action<Wire, (int x, int y), int>? onVisit = null)
     {
-        onVisit ??= (w, p, l) => AttachComponents(w, p, graph, inputs, gates, lamps, outputs);
+        onVisit ??= (w, p, l) => AttachComponents(w, p, graph);
 
         var queue = new Queue<((int x, int y) cur, (int x, int y) prev, int level)>();
         queue.Enqueue((start, prevStart, level));
@@ -78,10 +77,10 @@ public static class TraceWires
             if (!Detector.HasWire(tile, wire.Type)) continue;
 
             var jb = Detector.DetectJunctionBox(tile);
-            if (jb == JunctionBoxID.None && visited.Contains((cur, wire.Type)))
+            if (jb == JunctionBoxID.None && wireByTile.ContainsKey((cur, wire.Type)))
                 continue;
 
-            visited.Add((cur, wire.Type));
+            wireByTile[(cur, wire.Type)] = wire;
             onVisit(wire, cur, curLevel);
 
             if (jb != JunctionBoxID.None)
@@ -93,7 +92,7 @@ public static class TraceWires
             {
                 var prevJb = Detector.DetectJunctionBox(world.GetTile(prev.x, prev.y)) != JunctionBoxID.None;
 
-                foreach (var (dx, dy) in new [] { (1, 0), (0, 1), (-1, 0), (0, -1) })
+                foreach (var (dx, dy) in new[] { (1, 0), (0, 1), (-1, 0), (0, -1) })
                 {
                     var next = (x: cur.x + dx, y: cur.y + dy);
                     if (prevJb && prev == next) continue;
@@ -106,56 +105,31 @@ public static class TraceWires
     private static void AttachComponents(
         Wire wire,
         (int x, int y) pos,
-        WiringGraph graph,
-        Dictionary<(int x, int y), Input> inputs,
-        Dictionary<(int x, int y), Gate> gates,
-        Dictionary<(int x, int y), Lamp> lamps,
-        Dictionary<(int x, int y), Output> outputs)
+        WiringGraph graph)
     {
-        if (lamps.TryGetValue(pos, out var lamp))
+        if (graph.LampPos.TryGetValue(pos, out var lamp))
         {
             WiringGraph.AddEdge(wire, lamp);
             return;
         }
 
-        if (gates.TryGetValue(pos, out var gate))
+        if (graph.GatePos.TryGetValue(pos, out var gate))
         {
-            var gateLamps = FindLamps(gate, lamps);
-            WiringGraph.AddEdge(gate, wire);
-            foreach (var l in gateLamps)
-                WiringGraph.AddEdge(l, gate);
+            for (var y = gate.Y - 1; ; y--)
+            {
+                if (graph.LampPos.TryGetValue((gate.X, y), out var gateLamp))
+                    WiringGraph.AddEdge(gateLamp, gate);
+                else
+                    break;
+            }
             return;
         }
 
-        if (inputs.TryGetValue(pos, out var input))
+        if (graph.OutputPos.TryGetValue(pos, out var output))
         {
-            var ip = input.Fanout.OfType<InputPort>().FirstOrDefault()
-                     ?? graph.AddInputPort();
-            WiringGraph.AddEdge(input, ip);
-            WiringGraph.AddEdge(ip, wire);
-        }
-
-        if (outputs.TryGetValue(pos, out var output))
-        {
-            var op = output.Fanin.OfType<OutputPort>().FirstOrDefault()
-                     ?? graph.AddOutputPort();
+            var op = output.Fanin.OfType<OutputPort>().First();
             WiringGraph.AddEdge(wire, op);
-            WiringGraph.AddEdge(op, output);
         }
-    }
-    private static List<Lamp> FindLamps(Gate gate, Dictionary<(int x, int y), Lamp> lamps)
-    {
-        var result = new List<Lamp>();
-
-        for (var y = gate.Y - 1; ; y--)
-        {
-            if (lamps.TryGetValue((gate.X, y), out var lamp))
-                result.Add(lamp);
-            else
-                break;
-        }
-
-        return result;
     }
 
     private static (int x, int y) RouteJunction(

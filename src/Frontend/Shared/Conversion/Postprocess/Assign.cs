@@ -1,6 +1,6 @@
 using WireWarp.Frontend.Shared.Data;
 
-namespace WireWarp.Frontend.Shared.Conversion.Postprocess;
+namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class Assign
 {
