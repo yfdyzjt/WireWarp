@@ -1,3 +1,4 @@
+using WireWarp.Frontend.Shared.ID;
 using WireWarp.Frontend.Shared.Terraria;
 using WireWarp.Frontend.Shared.Terraria.ID;
 

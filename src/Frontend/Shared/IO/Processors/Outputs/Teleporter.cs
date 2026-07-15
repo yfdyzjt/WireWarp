@@ -1,6 +1,6 @@
 using WireWarp.Frontend.Shared.Data;
 using WireWarp.Frontend.Shared.Interfaces;
-using WireWarp.Frontend.Shared.Terraria.ID;
+using WireWarp.Frontend.Shared.ID;
 
 namespace WireWarp.Frontend.Shared.IO;
 

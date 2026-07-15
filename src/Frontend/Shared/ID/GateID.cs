@@ -1,4 +1,4 @@
-namespace WireWarp.Frontend.Shared.Terraria.ID;
+namespace WireWarp.Frontend.Shared.ID;
 
 public enum GateID : byte
 {
