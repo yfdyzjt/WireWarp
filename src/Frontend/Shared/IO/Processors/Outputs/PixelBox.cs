@@ -1,6 +1,6 @@
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.Interfaces;
 using WireWarp.Frontend.Shared.ID;
+using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.Shared.IO;
 
@@ -8,7 +8,7 @@ public class PixelBox : IOutputProcessor
 {
     public static readonly PixelBox Instance = new();
 
-    public void Process(WiringGraph graph, Output output, ITileAccessor world)
+    public void Process(WiringGraph graph, Output output)
     {
         var sources = new HashSet<IConnectable>();
         foreach (var op in output.Fanin.OfType<OutputPort>())
@@ -19,13 +19,13 @@ public class PixelBox : IOutputProcessor
 
         foreach (var color in new[] { WireID.Red, WireID.Blue, WireID.Green, WireID.Yellow })
         {
-            if (!Conversion.Detector.HasWire(world.GetTile(output.X, output.Y), color))
+            if (!Conversion.Detector.HasWire(Main.tile[output.X, output.Y], color))
                 continue;
 
-            TraceDir((output.X - 1, output.Y), (output.X, output.Y), sources, horizontal, color, graph, world);
-            TraceDir((output.X + 1, output.Y), (output.X, output.Y), sources, horizontal, color, graph, world);
-            TraceDir((output.X, output.Y - 1), (output.X, output.Y), sources, vertical, color, graph, world);
-            TraceDir((output.X, output.Y + 1), (output.X, output.Y), sources, vertical, color, graph, world);
+            TraceDir((output.X - 1, output.Y), (output.X, output.Y), sources, horizontal, color, graph);
+            TraceDir((output.X + 1, output.Y), (output.X, output.Y), sources, horizontal, color, graph);
+            TraceDir((output.X, output.Y - 1), (output.X, output.Y), sources, vertical, color, graph);
+            TraceDir((output.X, output.Y + 1), (output.X, output.Y), sources, vertical, color, graph);
         }
 
         horizontal.IntersectWith(vertical);
@@ -44,15 +44,14 @@ public class PixelBox : IOutputProcessor
         HashSet<IConnectable> sources,
         HashSet<IConnectable> result,
         WireID color,
-        WiringGraph graph,
-        ITileAccessor world)
+        WiringGraph graph)
     {
         var visited = new Dictionary<((int, int), WireID), Wire>();
         var tempWire = new Wire { Type = color };
 
         Conversion.TraceWires.TraceWire(
             tempWire, 0, s, c,
-            graph, world, visited,
+            graph, visited,
             (w, pos, _) =>
             {
                 if (graph.GatePos.TryGetValue(pos, out var gate) && sources.Contains(gate))

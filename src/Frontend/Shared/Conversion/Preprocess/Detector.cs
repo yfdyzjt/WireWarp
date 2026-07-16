@@ -20,12 +20,12 @@ public static class Detector
 
     public static GateID DetectGate(Tile tile)
     {
-        if (!tile.HasTile || tile.TileType != TileID.LogicGate)
+        if (!tile.HasTile || tile.type != TileID.LogicGate)
             return GateID.None;
 
-        return tile.TileFrameX switch
+        return tile.frameX switch
         {
-            0 * 18 or 1 * 18 => tile.TileFrameY switch
+            0 * 18 or 1 * 18 => tile.frameY switch
             {
                 0 * 18 => GateID.AND,
                 1 * 18 => GateID.OR,
@@ -42,10 +42,10 @@ public static class Detector
 
     public static LampID DetectLamp(Tile tile)
     {
-        if (!tile.HasTile || tile.HasActuator || tile.TileType != TileID.LogicGateLamp)
+        if (!tile.HasTile || tile.HasActuator || tile.type != TileID.LogicGateLamp)
             return LampID.None;
 
-        return tile.TileFrameX switch
+        return tile.frameX switch
         {
             0 * 18 => LampID.Off,
             1 * 18 => LampID.On,
@@ -59,10 +59,10 @@ public static class Detector
         if (!tile.HasTile)
             return JunctionBoxID.None;
 
-        return tile.TileType switch
+        return tile.type switch
         {
             TileID.PixelBox => JunctionBoxID.UpDown,
-            TileID.WirePipe => tile.TileFrameX switch
+            TileID.WirePipe => tile.frameX switch
             {
                 0 * 18 => JunctionBoxID.UpDown,
                 1 * 18 => JunctionBoxID.UpLeft,
@@ -78,10 +78,10 @@ public static class Detector
         if (!tile.HasTile)
             return InputID.None;
 
-        return tile.TileType switch
+        return tile.type switch
         {
             TileID.PressurePlates => InputID.PressurePlates,
-            TileID.MinecartTrack when 20 <= tile.TileFrameX && tile.TileFrameX < 24 => InputID.PressurePlateTrack,
+            TileID.MinecartTrack when 20 <= tile.frameX && tile.frameX < 24 => InputID.PressurePlateTrack,
             TileID.LogicSensor => InputID.LogicSensor,
             TileID.WeightedPressurePlate => InputID.WeightedPressurePlate,
             TileID.ProjectilePressurePad => InputID.ProjectilePressurePad,
@@ -91,7 +91,7 @@ public static class Detector
             TileID.GeyserTrap => InputID.GeyserTrap,
             TileID.Timers => InputID.Timers,
             TileID.FakeContainers or TileID.FakeContainers2 => InputID.FakeContainers,
-            TileID.Containers2 when tile.TileFrameX / 36 is 4 => InputID.DeadMansChest,
+            TileID.Containers2 when tile.frameX / 36 is 4 => InputID.DeadMansChest,
             TileID.Lever => InputID.Lever,
             TileID.Detonator => InputID.Detonator,
             _ => InputID.None,
@@ -103,25 +103,25 @@ public static class Detector
         if (!tile.HasTile)
             return OutputID.None;
 
-        return tile.TileType switch
+        return tile.type switch
         {
             _ when tile.HasActuator => OutputID.Actuator,
             TileID.Timers => OutputID.Timers,
             TileID.ConveyorBeltLeft or TileID.ConveyorBeltRight => OutputID.ConveyorBelts,
-            _ when TileID.AmethystGemsparkOff <= tile.TileType && tile.TileType <= TileID.AmberGemspark => OutputID.Gemsparks,
+            _ when TileID.AmethystGemsparkOff <= tile.type && tile.type <= TileID.AmberGemspark => OutputID.Gemsparks,
             TileID.Chimney => OutputID.Chimney,
             TileID.SillyBalloonMachine => OutputID.SillyBalloonMachine,
             TileID.Detonator => OutputID.Detonator,
             TileID.Sundial or TileID.Moondial => OutputID.SunAndMoondial,
             TileID.AnnouncementBox => OutputID.AnnouncementBox,
             TileID.Fireplace => OutputID.Fireplace,
-            TileID.Cannon => (tile.TileFrameX % 72) switch
+            TileID.Cannon => (tile.frameX % 72) switch
             {
                 0 => OutputID.CannonsLeft,
                 54 => OutputID.CannonsRight,
-                18 or 36 => tile.TileFrameX < 216
+                18 or 36 => tile.frameX < 216
                     ? OutputID.CannonsShot
-                    : (tile.TileFrameY % 54) switch
+                    : (tile.frameY % 54) switch
                     {
                         0 or 18 => OutputID.PortalGunStationChange,
                         36 => OutputID.PortalGunStationShot,
@@ -129,7 +129,7 @@ public static class Detector
                     },
                 _ => OutputID.None,
             },
-            TileID.SnowballLauncher => (tile.TileFrameX % 54) switch
+            TileID.SnowballLauncher => (tile.frameX % 54) switch
             {
                 0 => OutputID.SnowballLauncherLeft,
                 36 => OutputID.SnowballLauncherRight,
@@ -145,7 +145,7 @@ public static class Detector
             TileID.ClosedDoor => OutputID.ClosedDoors,
             TileID.Firework => OutputID.Fireworks,
             TileID.Toilets => OutputID.Toilets,
-            TileID.Chairs when tile.TileFrameY / 40 is 1 or 20 => OutputID.Toilets,
+            TileID.Chairs when tile.frameY / 40 is 1 or 20 => OutputID.Toilets,
             TileID.FireworksBox => OutputID.FireworksBox,
             TileID.FireworkFountain => OutputID.FireworkFountain,
             TileID.Teleporter => OutputID.Teleporter,
@@ -161,9 +161,9 @@ public static class Detector
             TileID.VolcanoSmall => OutputID.VolcanoSmall,
             TileID.VolcanoLarge => OutputID.VolcanoLarge,
             TileID.Chandeliers => OutputID.Chandeliers,
-            TileID.MinecartTrack when (30 <= tile.TileFrameX && tile.TileFrameX < 36) ||
-                ((tile.TileFrameX < 20 || (23 < tile.TileFrameX && tile.TileFrameX < 30)) &&
-                 tile.TileFrameY != -1) => OutputID.MinecartTrack,
+            TileID.MinecartTrack when (30 <= tile.frameX && tile.frameX < 36) ||
+                ((tile.frameX < 20 || (23 < tile.frameX && tile.frameX < 30)) &&
+                 tile.frameY != -1) => OutputID.MinecartTrack,
             TileID.Candles or TileID.PlatinumCandle or TileID.WaterCandle or
             TileID.PeaceCandle or TileID.ShadowCandle => OutputID.Candles,
             TileID.Lampposts => OutputID.Lampposts,
@@ -182,7 +182,7 @@ public static class Detector
             TileID.InletPump or TileID.OutletPump => OutputID.Pumps,
             TileID.BoulderStatue or TileID.MushroomStatue or
             TileID.CatBast => OutputID.Statues,
-            TileID.Statues when !(tile.TileFrameX / 36 is 0 or 1 or 3 or 6 or 11 or 12 or 14 or 15 or 19 or
+            TileID.Statues when !(tile.frameX / 36 is 0 or 1 or 3 or 6 or 11 or 12 or 14 or 15 or 19 or
                 20 or 21 or 22 or 24 or 25 or 26 or 29 or 31 or 32 or 33 or 36 or 38 or 39 or 43 or 44 or 45)
                 => OutputID.Statues,
             TileID.Grate or TileID.GrateClosed => OutputID.Grates,

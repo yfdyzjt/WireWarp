@@ -2,9 +2,9 @@ namespace WireWarp.Frontend.Shared.Terraria;
 
 public struct Tile
 {
-    public ushort TileType;
-    public short TileFrameX;
-    public short TileFrameY;
+    public ushort type;
+    public short frameX;
+    public short frameY;
 
     public bool HasTile;
     public bool HasActuator;

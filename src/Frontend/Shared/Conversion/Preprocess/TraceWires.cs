@@ -1,32 +1,31 @@
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.Interfaces;
 using WireWarp.Frontend.Shared.ID;
+using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class TraceWires
 {
-    public static void Execute(WiringGraph graph, ITileAccessor world)
+    public static void Execute(WiringGraph graph)
     {
         var wireByTile = new Dictionary<((int x, int y) pos, WireID color), Wire>();
 
         foreach (var (pos, input) in graph.InputPos)
-            TraceSource(pos, input, graph, world, wireByTile);
+            TraceSource(pos, input, graph, wireByTile);
 
         foreach (var (pos, gate) in graph.GatePos)
-            TraceSource(pos, gate, graph, world, wireByTile);
+            TraceSource(pos, gate, graph, wireByTile);
     }
 
     private static void TraceSource(
         (int x, int y) start,
         IConnectable source,
         WiringGraph graph,
-        ITileAccessor world,
         Dictionary<((int, int), WireID), Wire> wireByTile)
     {
         foreach (var color in new[] { WireID.Red, WireID.Blue, WireID.Green, WireID.Yellow })
         {
-            if (!Detector.HasWire(world.GetTile(start.x, start.y), color))
+            if (!Detector.HasWire(Main.tile[start.x, start.y], color))
                 continue;
 
             if (wireByTile.TryGetValue((start, color), out var oldWire))
@@ -46,7 +45,7 @@ public static class TraceWires
             var wire = graph.AddWire(color, start.x, start.y);
 
             WiringGraph.AddEdge(input, wire);
-            TraceWire(wire, 0, start, start, graph, world, wireByTile);
+            TraceWire(wire, 0, start, start, graph, wireByTile);
         }
     }
 
@@ -56,7 +55,6 @@ public static class TraceWires
         (int x, int y) start,
         (int x, int y) prevStart,
         WiringGraph graph,
-        ITileAccessor world,
         Dictionary<((int, int), WireID), Wire> wireByTile,
         Action<Wire, (int x, int y), int>? onVisit = null)
     {
@@ -69,11 +67,11 @@ public static class TraceWires
         {
             var (cur, prev, curLevel) = queue.Dequeue();
 
-            if (cur.x < 0 || cur.x >= world.GetWorldWidth() ||
-                cur.y < 0 || cur.y >= world.GetWorldHeight())
+            if (cur.x < 0 || cur.x >= Main.maxTilesX ||
+                cur.y < 0 || cur.y >= Main.maxTilesY)
                 continue;
 
-            var tile = world.GetTile(cur.x, cur.y);
+            var tile = Main.tile[cur.x, cur.y];
             if (!Detector.HasWire(tile, wire.Type)) continue;
 
             var jb = Detector.DetectJunctionBox(tile);
@@ -90,7 +88,7 @@ public static class TraceWires
             }
             else
             {
-                var prevJb = Detector.DetectJunctionBox(world.GetTile(prev.x, prev.y)) != JunctionBoxID.None;
+                var prevJb = Detector.DetectJunctionBox(Main.tile[prev.x, prev.y]) != JunctionBoxID.None;
 
                 foreach (var (dx, dy) in new[] { (1, 0), (0, 1), (-1, 0), (0, -1) })
                 {

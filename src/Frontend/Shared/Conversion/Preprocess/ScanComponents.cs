@@ -1,30 +1,30 @@
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.Interfaces;
 using WireWarp.Frontend.Shared.ID;
+using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class ScanComponents
 {
-    public static void Execute(WiringGraph graph, ITileAccessor world)
+    public static void Execute(WiringGraph graph)
     {
-        Scan(graph, world);
+        Scan(graph);
         CreatePorts(graph);
     }
 
-    private static void Scan(WiringGraph graph, ITileAccessor world)
+    private static void Scan(WiringGraph graph)
     {
         var inputByOrigin = new Dictionary<(int x, int y, InputID type), Input>();
         var outputByOrigin = new Dictionary<(int x, int y, OutputID type), Output>();
 
-        var w = world.GetWorldWidth();
-        var h = world.GetWorldHeight();
+        var w = Main.maxTilesX;
+        var h = Main.maxTilesY;
 
         for (var x = 0; x < w; x++)
         {
             for (var y = 0; y < h; y++)
             {
-                var tile = world.GetTile(x, y);
+                var tile = Main.tile[x, y];
                 if (!tile.HasTile) continue;
 
                 var gateType = Detector.DetectGate(tile);
@@ -44,7 +44,7 @@ public static class ScanComponents
                 var inputType = Detector.DetectInput(tile);
                 if (inputType != InputID.None && Detector.HasWire(tile))
                 {
-                    var origin = Detector.GetInputOrigin(inputType, x, y, tile.TileFrameX, tile.TileFrameY);
+                    var origin = Detector.GetInputOrigin(inputType, x, y, tile.frameX, tile.frameY);
                     var size = Detector.GetInputSize(inputType);
                     var inRange = InRange(x, y, origin, size);
                     var key = (origin.x, origin.y, inputType);
@@ -60,7 +60,7 @@ public static class ScanComponents
                 var outputType = Detector.DetectOutput(tile);
                 if (outputType != OutputID.None && Detector.HasWire(tile))
                 {
-                    var origin = Detector.GetOutputOrigin(outputType, x, y, tile.TileFrameX, tile.TileFrameY);
+                    var origin = Detector.GetOutputOrigin(outputType, x, y, tile.frameX, tile.frameY);
                     var size = Detector.GetOutputSize(outputType);
                     var inRange = InRange(x, y, origin, size);
                     var key = (origin.x, origin.y, outputType);

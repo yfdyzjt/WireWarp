@@ -1,12 +1,11 @@
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.Interfaces;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
 public static class Applier
 {
-    public static void Execute(WiringGraph graph, ITileAccessor world)
+    public static void Execute(WiringGraph graph)
     {
-        IO.Processor.Execute(graph, world);
+        IO.Processor.Execute(graph);
     }
 }

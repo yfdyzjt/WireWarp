@@ -2,9 +2,9 @@ using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.Shared.Interfaces;
 
-public interface ITileAccessor
+public interface ITerraria
 {
-    int GetWorldWidth();
-    int GetWorldHeight();
+    int MaxTilesX { get; }
+    int MaxTilesY { get; }
     Tile GetTile(int x, int y);
 }

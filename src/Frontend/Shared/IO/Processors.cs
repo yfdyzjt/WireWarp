@@ -1,5 +1,4 @@
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.Interfaces;
 using WireWarp.Frontend.Shared.ID;
 
 namespace WireWarp.Frontend.Shared.IO;
@@ -18,9 +17,9 @@ public static class Processor
         _outputs[(int)OutputID.WireBulb]   = WireBulb.Instance;
     }
 
-    internal static void Execute(WiringGraph graph, ITileAccessor world)
+    internal static void Execute(WiringGraph graph)
     {
         foreach (var output in graph.Outputs)
-            _outputs[(int)output.Type]?.Process(graph, output, world);
+            _outputs[(int)output.Type]?.Process(graph, output);
     }
 }

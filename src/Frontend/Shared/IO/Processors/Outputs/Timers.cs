@@ -1,5 +1,4 @@
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.Interfaces;
 
 namespace WireWarp.Frontend.Shared.IO;
 
@@ -7,7 +6,7 @@ public class Timers : IOutputProcessor
 {
     public static readonly Timers Instance = new();
 
-    public void Process(WiringGraph graph, Output output, ITileAccessor world)
+    public void Process(WiringGraph graph, Output output)
     {
         // Timer output cannot directly activate itself.
         foreach (var op in output.Fanin.OfType<OutputPort>())

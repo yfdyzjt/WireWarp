@@ -1,6 +1,6 @@
 using WireWarp.Frontend.Shared.Data;
 using WireWarp.Frontend.Shared.ID;
-using WireWarp.Frontend.Shared.Interfaces;
+using WireWarp.Frontend.Shared.Terraria;
 using WireWarp.Frontend.Shared.Terraria.ID;
 
 namespace WireWarp.Frontend.Shared.IO;
@@ -8,14 +8,14 @@ namespace WireWarp.Frontend.Shared.IO;
 public class Pumps : IOutputProcessor
 {
     public static readonly Pumps Instance = new();
-    
-    public void Process(WiringGraph graph, Output output, ITileAccessor world)
+
+    public void Process(WiringGraph graph, Output output)
     {
         foreach (var op in output.Fanin.OfType<OutputPort>().ToList())
         {
             var wire = op.Fanin.OfType<Wire>().First();
 
-            var (inlets, outlets) = Analyze(wire, graph, world);
+            var (inlets, outlets) = Analyze(wire, graph);
 
             if (inlets != null && inlets[0] == output)
                 graph.ExtraData.Pumps[op] = (inlets, outlets!);
@@ -25,7 +25,7 @@ public class Pumps : IOutputProcessor
     }
 
     private static (List<Output>? inlets, List<Output>? outlets) Analyze(
-        Wire wire, WiringGraph graph, ITileAccessor world)
+        Wire wire, WiringGraph graph)
     {
         var inlets = new List<Output>();
         var outlets = new List<Output>();
@@ -33,13 +33,13 @@ public class Pumps : IOutputProcessor
 
         Conversion.TraceWires.TraceWire(
             wire, 0, (wire.X, wire.Y), (wire.X, wire.Y),
-            graph, world, visited,
+            graph, visited,
             (w, pos, _) =>
             {
                 if (!graph.OutputPos.TryGetValue(pos, out var o)) return;
                 if (o.Type != OutputID.Pumps) return;
 
-                var tileType = world.GetTile(pos.x, pos.y).TileType;
+                var tileType = Main.tile[pos.x, pos.y].type;
                 if (tileType == TileID.InletPump && !inlets.Contains(o))
                     inlets.Add(o);
                 else if (tileType == TileID.OutletPump && !outlets.Contains(o))
