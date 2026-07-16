@@ -4,7 +4,7 @@ using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.Shared.IO;
 
-public class PixelBox : IOutputProcessor
+internal class PixelBox : IOutputProcessor
 {
     public static readonly PixelBox Instance = new();
 
@@ -19,7 +19,7 @@ public class PixelBox : IOutputProcessor
 
         foreach (var color in new[] { WireID.Red, WireID.Blue, WireID.Green, WireID.Yellow })
         {
-            if (!Conversion.Detector.HasWire(Main.tile[output.X, output.Y], color))
+            if (!Conversion.Detector.HasWire(Main.tile(output.X, output.Y), color))
                 continue;
 
             TraceDir((output.X - 1, output.Y), (output.X, output.Y), sources, horizontal, color, graph);

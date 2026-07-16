@@ -2,7 +2,7 @@ using WireWarp.Frontend.Shared.Data;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
-public static class Split
+internal static class Split
 {
     public static void Execute(WiringGraph graph)
     {

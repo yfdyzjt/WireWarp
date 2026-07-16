@@ -3,7 +3,7 @@ using WireWarp.Frontend.Shared.ID;
 
 namespace WireWarp.Frontend.Shared.IO;
 
-public class Teleporter : IOutputProcessor
+internal class Teleporter : IOutputProcessor
 {
     public static readonly Teleporter Instance = new();
 

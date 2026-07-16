@@ -4,7 +4,7 @@ using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
-public static class ScanComponents
+internal static class ScanComponents
 {
     public static void Execute(WiringGraph graph)
     {
@@ -24,7 +24,7 @@ public static class ScanComponents
         {
             for (var y = 0; y < h; y++)
             {
-                var tile = Main.tile[x, y];
+                var tile = Main.tile(x, y);
                 if (!tile.HasTile) continue;
 
                 var gateType = Detector.DetectGate(tile);

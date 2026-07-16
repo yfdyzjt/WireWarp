@@ -2,7 +2,7 @@ using WireWarp.Frontend.Shared.Data;
 
 namespace WireWarp.Frontend.Shared.IO;
 
-public class WireBulb : IOutputProcessor
+internal class WireBulb : IOutputProcessor
 {
     public static readonly WireBulb Instance = new();
 

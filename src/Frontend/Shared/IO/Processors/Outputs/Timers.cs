@@ -2,7 +2,7 @@ using WireWarp.Frontend.Shared.Data;
 
 namespace WireWarp.Frontend.Shared.IO;
 
-public class Timers : IOutputProcessor
+internal class Timers : IOutputProcessor
 {
     public static readonly Timers Instance = new();
 

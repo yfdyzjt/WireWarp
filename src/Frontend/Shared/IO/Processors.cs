@@ -3,7 +3,7 @@ using WireWarp.Frontend.Shared.ID;
 
 namespace WireWarp.Frontend.Shared.IO;
 
-public static class Processor
+internal static class Processor
 {
     private static readonly IOutputProcessor?[] _outputs =
         new IOutputProcessor?[Enum.GetValues<OutputID>().Length];

@@ -6,5 +6,5 @@ public interface ITerraria
 {
     int MaxTilesX { get; }
     int MaxTilesY { get; }
-    Tile GetTile(int x, int y);
+    Tile Tile(int x, int y);
 }

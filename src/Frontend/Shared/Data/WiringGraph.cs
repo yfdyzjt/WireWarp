@@ -22,20 +22,20 @@ public class WiringGraph
     public IReadOnlyList<Output> Outputs => _outputs;
     public IReadOnlyList<OutputPort> OutputPorts => _outputPorts;
 
-    public Dictionary<(int x, int y), Input> InputPos { get; } = [];
-    public Dictionary<(int x, int y), Gate> GatePos { get; } = [];
-    public Dictionary<(int x, int y), Lamp> LampPos { get; } = [];
-    public Dictionary<(int x, int y), Output> OutputPos { get; } = [];
+    internal Dictionary<(int x, int y), Input> InputPos { get; } = [];
+    internal Dictionary<(int x, int y), Gate> GatePos { get; } = [];
+    internal Dictionary<(int x, int y), Lamp> LampPos { get; } = [];
+    internal Dictionary<(int x, int y), Output> OutputPos { get; } = [];
 
     // edge
 
-    public static void AddEdge(IConnectable from, IConnectable to)
+    internal static void AddEdge(IConnectable from, IConnectable to)
     {
         from.Fanout.Add(to);
         to.Fanin.Add(from);
     }
 
-    public static void RemoveEdge(IConnectable from, IConnectable to)
+    internal static void RemoveEdge(IConnectable from, IConnectable to)
     {
         from.Fanout.Remove(to);
         to.Fanin.Remove(from);
@@ -43,56 +43,56 @@ public class WiringGraph
 
     // node
 
-    public Wire AddWire(WireID type, int x, int y)
+    internal Wire AddWire(WireID type, int x, int y)
     {
         var node = new Wire { Type = type, X = x, Y = y };
         _wires.Add(node);
         return node;
     }
 
-    public Gate AddGate(GateID type, int x, int y)
+    internal Gate AddGate(GateID type, int x, int y)
     {
         var node = new Gate { Type = type, X = x, Y = y };
         _gates.Add(node);
         return node;
     }
 
-    public Lamp AddLamp(LampID type, int x, int y)
+    internal Lamp AddLamp(LampID type, int x, int y)
     {
         var node = new Lamp { Type = type, X = x, Y = y };
         _lamps.Add(node);
         return node;
     }
 
-    public Input AddInput(InputID type, int x, int y)
+    internal Input AddInput(InputID type, int x, int y)
     {
         var node = new Input { Type = type, X = x, Y = y };
         _inputs.Add(node);
         return node;
     }
 
-    public InputPort AddInputPort()
+    internal InputPort AddInputPort()
     {
         var node = new InputPort();
         _inputPorts.Add(node);
         return node;
     }
 
-    public Output AddOutput(OutputID type, int x, int y)
+    internal Output AddOutput(OutputID type, int x, int y)
     {
         var node = new Output { Type = type, X = x, Y = y };
         _outputs.Add(node);
         return node;
     }
 
-    public OutputPort AddOutputPort()
+    internal OutputPort AddOutputPort()
     {
         var node = new OutputPort();
         _outputPorts.Add(node);
         return node;
     }
 
-    public IConnectable CopyNode(IConnectable node)
+    internal IConnectable CopyNode(IConnectable node)
     {
         IConnectable copy = node switch
         {
@@ -115,7 +115,7 @@ public class WiringGraph
         return copy;
     }
 
-    public void RemoveNode(IConnectable node)
+    internal void RemoveNode(IConnectable node)
     {
         foreach (var source in node.Fanin)
             source.Fanout.Remove(node);

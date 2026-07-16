@@ -3,12 +3,12 @@ using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.tModLoader;
 
-public sealed class Adapter : ITerraria
+internal sealed class Adapter : ITerraria
 {
     public int MaxTilesX => Terraria.Main.maxTilesX;
     public int MaxTilesY => Terraria.Main.maxTilesY;
 
-    public Tile GetTile(int x, int y)
+    public Tile Tile(int x, int y)
     {
         var real = Terraria.Main.tile[x, y];
         if (real == null)

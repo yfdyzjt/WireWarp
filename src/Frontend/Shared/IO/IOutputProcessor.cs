@@ -2,7 +2,7 @@ using WireWarp.Frontend.Shared.Data;
 
 namespace WireWarp.Frontend.Shared.IO;
 
-public interface IOutputProcessor
+internal interface IOutputProcessor
 {
     void Process(WiringGraph graph, Output output);
 }

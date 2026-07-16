@@ -4,7 +4,7 @@ using WireWarp.Frontend.Shared.Terraria.ID;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
-public static class Detector
+internal static class Detector
 {
     public static bool HasWire(Tile tile) =>
         tile.RedWire || tile.BlueWire || tile.GreenWire || tile.YellowWire;

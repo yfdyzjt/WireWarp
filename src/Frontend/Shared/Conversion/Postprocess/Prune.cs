@@ -2,7 +2,7 @@ using WireWarp.Frontend.Shared.Data;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
-public static class Prune
+internal static class Prune
 {
     public static void Execute(WiringGraph graph)
     {

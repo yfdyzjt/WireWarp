@@ -3,7 +3,7 @@ using WireWarp.Frontend.Shared.ID;
 
 namespace WireWarp.Frontend.Shared.Conversion;
 
-public static class Normalize
+internal static class Normalize
 {
     public static void Execute(WiringGraph graph)
     {

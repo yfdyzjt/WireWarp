@@ -5,7 +5,7 @@ using WireWarp.Frontend.Shared.Terraria.ID;
 
 namespace WireWarp.Frontend.Shared.IO;
 
-public class Pumps : IOutputProcessor
+internal class Pumps : IOutputProcessor
 {
     public static readonly Pumps Instance = new();
 
@@ -39,7 +39,7 @@ public class Pumps : IOutputProcessor
                 if (!graph.OutputPos.TryGetValue(pos, out var o)) return;
                 if (o.Type != OutputID.Pumps) return;
 
-                var tileType = Main.tile[pos.x, pos.y].type;
+                var tileType = Main.tile(pos.x, pos.y).type;
                 if (tileType == TileID.InletPump && !inlets.Contains(o))
                     inlets.Add(o);
                 else if (tileType == TileID.OutletPump && !outlets.Contains(o))
