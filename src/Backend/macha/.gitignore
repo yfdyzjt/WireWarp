@@ -1,0 +1,6 @@
+# Build outputs
+.zig-cache/
+zig-out/
+
+# Local scratch (notes, world dumps)
+.local/
