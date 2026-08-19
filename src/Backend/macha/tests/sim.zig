@@ -324,3 +324,51 @@ test "gate marked before later trips still pulses" {
     });
     try testing.expectEqualSlices(i32, &.{ 8, 9 }, try run(a, &g, 0));
 }
+
+test "arena size stabilizes under repeated events" {
+    // The sim's only per-event allocation is the output buffer, which grows
+    // monotonically up to the world's maximum per-event fanout and then
+    // stays put. The world arena must not grow with event count.
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+
+    const lamps = try a.alloc(Lamp, 0);
+    const gates = try a.alloc(Gate, 0);
+    var outs: [200]i32 = undefined;
+    for (&outs, 0..) |*o, i| o.* = @intCast(i);
+    const wires = try makeWires(a, &.{
+        .{ .lamps = &.{}, .fault_gates = &.{}, .outputs = &outs },
+    });
+    const g = try makeGraph(a, lamps, gates, wires, &.{
+        .{ .port = 0, .wires = &.{0} },
+    });
+
+    var sim = try Sim.init(a, &g, 1);
+
+    // Warmup: any one-time growth (output buffer reaching the world's max
+    // fanout) happens here.
+    for (0..10_000) |_| _ = try sim.event(0);
+    const cap_after_warmup = arena.queryCapacity();
+
+    for (0..100_000) |_| _ = try sim.event(0);
+    try testing.expectEqual(cap_after_warmup, arena.queryCapacity()); // never grows again
+
+    // A burst big enough to exhaust the arena node slack still grows only
+    // once, then stays flat.
+    var big_outs: [10_000]i32 = undefined;
+    for (&big_outs, 0..) |*o, i| o.* = @intCast(i);
+    const big_wires = try makeWires(a, &.{
+        .{ .lamps = &.{}, .fault_gates = &.{}, .outputs = &big_outs },
+    });
+    const big_g = try makeGraph(a, lamps, gates, big_wires, &.{
+        .{ .port = 0, .wires = &.{0} },
+    });
+    var big_sim = try Sim.init(a, &big_g, 1);
+    _ = try big_sim.event(0); // grows out to 10_000 entries, past the slack
+    const cap_after_burst = arena.queryCapacity();
+    try testing.expect(cap_after_burst > cap_after_warmup);
+
+    for (0..10_000) |_| _ = try big_sim.event(0);
+    try testing.expectEqual(cap_after_burst, arena.queryCapacity());
+}
