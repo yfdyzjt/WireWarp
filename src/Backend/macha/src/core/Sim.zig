@@ -2,6 +2,7 @@ const Sim = @This();
 
 const std = @import("std");
 const Buf = @import("../util.zig").Buf;
+const Set = @import("../util.zig").Set;
 const Graph = @import("Graph.zig");
 
 alloc: std.mem.Allocator,
@@ -17,39 +18,6 @@ out: Buf(i32),
 
 events: u64 = 0,
 checks: u64 = 0,
-
-/// Fixed-capacity ordered set: `push` skips duplicates and preserves
-/// insertion order.
-const Set = struct {
-    flags: []bool,
-    items: []usize,
-    len: usize = 0,
-
-    /// No-op when the index is already in the set.
-    fn push(self: *Set, i: usize) void {
-        if (self.flags[i]) return;
-        self.flags[i] = true;
-        self.items[self.len] = i;
-        self.len += 1;
-    }
-
-    fn contains(self: *const Set, i: usize) bool {
-        return self.flags[i];
-    }
-
-    fn slice(self: *const Set) []const usize {
-        return self.items[0..self.len];
-    }
-
-    fn clear(self: *Set) void {
-        self.len = 0;
-    }
-
-    fn reset(self: *Set) void {
-        @memset(self.flags, false);
-        self.len = 0;
-    }
-};
 
 pub fn init(a: std.mem.Allocator, g: *const Graph, seed: u64) std.mem.Allocator.Error!Sim {
     const gate_count = g.gates.len;
@@ -204,5 +172,8 @@ fn checkChanged(self: *Sim, gi: usize, cur: bool) bool {
 fn clearEvent(self: *Sim) void {
     self.out.clear();
     self.target_groups.clear();
-    self.fired.reset();
+    // Reset only the flags this event actually set: a full-array memset
+    // costs O(gate_count) cache-polluting writes per event.
+    for (self.fired.slice()) |gi| self.fired.flags[gi] = false;
+    self.fired.clear();
 }

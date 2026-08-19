@@ -48,6 +48,28 @@ pub const IoFile = struct {
     };
 };
 
+/// Mirrors the frontend's `InputID`: the game device that produces an input
+/// event. Only the bench/replay harnesses consume it; the sim addresses
+/// inputs purely by port id.
+pub const InputType = enum(u8) {
+    none = 0,
+    pressure_plate = 1,
+    pressure_plate_track = 2,
+    logic_sensor = 3,
+    weighted_pressure_plate = 4,
+    projectile_pressure_pad = 5,
+    golf_hole = 6,
+    gem_lock = 7,
+    switch_ = 8,
+    geyser_trap = 9,
+    timer = 10,
+    fake_container = 11,
+    dead_mans_chest = 12,
+    lever = 13,
+    detonator = 14,
+    _,
+};
+
 pub fn parseWiring(a: std.mem.Allocator, bytes: []const u8) ParseError!WiringFile {
     var r = util.Reader.init(bytes);
     const hash = try readHeader(&r);

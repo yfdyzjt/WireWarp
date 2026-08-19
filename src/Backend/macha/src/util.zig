@@ -147,6 +147,40 @@ pub fn Buf(comptime T: type) type {
     };
 }
 
+/// Fixed-capacity ordered set: `push` skips duplicates and preserves
+/// insertion order. Backed by caller-provided arrays, like `Buf` but static.
+pub const Set = struct {
+    flags: []bool,
+    items: []usize,
+    len: usize = 0,
+
+    /// No-op when the index is already in the set.
+    pub fn push(self: *Set, i: usize) void {
+        if (self.flags[i]) return;
+        self.flags[i] = true;
+        self.items[self.len] = i;
+        self.len += 1;
+    }
+
+    pub fn contains(self: *const Set, i: usize) bool {
+        return self.flags[i];
+    }
+
+    pub fn slice(self: *const Set) []const usize {
+        return self.items[0..self.len];
+    }
+
+    /// Empties the stack; flags must already have been reset (see `reset`).
+    pub fn clear(self: *Set) void {
+        self.len = 0;
+    }
+
+    pub fn reset(self: *Set) void {
+        @memset(self.flags, false);
+        self.len = 0;
+    }
+};
+
 /// Close a socket fd (the 0.16 `std.posix` layer only exposes the raw
 /// errno-returning syscall).
 pub fn closeFd(fd: std.posix.socket_t) void {

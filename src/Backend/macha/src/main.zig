@@ -62,11 +62,11 @@ pub fn main(init: std.process.Init) !void {
         std.debug.print("warning: hash mismatch between .wwir and .wwio\n", .{});
     }
 
-    const plate_type: u8 = 5; // InputID.ProjectilePressurePad: the world's clock sources
+    const plate_type = macha.files.InputType.projectile_pressure_pad; // the world's clock sources
     var plates_buf = try macha.util.Buf(i32).init(arena, 64);
     var others_buf = try macha.util.Buf(i32).init(arena, 64);
     for (iof.inputs) |in| {
-        if (in.type_ == plate_type)
+        if (in.type_ == @intFromEnum(plate_type))
             try plates_buf.append(arena, in.port_id)
         else
             try others_buf.append(arena, in.port_id);
@@ -74,11 +74,18 @@ pub fn main(init: std.process.Init) !void {
     const plates = plates_buf.slice();
     const others = others_buf.slice();
     if (plates.len == 0 and others.len == 0) return error.NoInputs;
-    std.debug.print("inputs: {d} clock pads (type {d}), {d} others\n", .{ plates.len, plate_type, others.len });
+    std.debug.print("inputs: {d} clock pads ({}), {d} others\n", .{ plates.len, plate_type, others.len });
     var type_counts: [256]u64 = [_]u64{0} ** 256;
     for (iof.inputs) |in| type_counts[in.type_] += 1;
     for (type_counts, 0..) |count, t2| {
-        if (count > 0) std.debug.print("  input type {d}: {d} records\n", .{ t2, count });
+        if (count > 0) {
+            const t8: u8 = @intCast(t2);
+            if (std.enums.fromInt(macha.files.InputType, t8)) |it| {
+                std.debug.print("  input type {} ({d}): {d} records\n", .{ it, t8, count });
+            } else {
+                std.debug.print("  input type unknown ({d}): {d} records\n", .{ t8, count });
+            }
+        }
     }
 
     const g = try macha.compiler.compile(arena, &wiring);

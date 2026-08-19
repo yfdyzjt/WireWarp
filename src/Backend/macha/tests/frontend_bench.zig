@@ -96,11 +96,11 @@ pub fn main(init: std.process.Init) !void {
     @memcpy(world_hash[0..], wwir[8 .. 8 + hash_size]);
 
     const iof = try macha.files.parseIo(arena, wwio);
-    const plate_type: u8 = 5; // InputID.ProjectilePressurePad: the clock sources
+    const plate_type = macha.files.InputType.projectile_pressure_pad; // the clock sources
     var plates = try util.Buf(i32).init(arena, 64);
     var others = try util.Buf(i32).init(arena, 64);
     for (iof.inputs) |in| {
-        if (in.type_ == plate_type)
+        if (in.type_ == @intFromEnum(plate_type))
             try plates.append(arena, in.port_id)
         else
             try others.append(arena, in.port_id);
