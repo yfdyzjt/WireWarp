@@ -1,3 +1,12 @@
+//! Compiles parsed world files into the runtime `Graph`.
+//!
+//! Id layout: the wiring file shares one id space across its groups — input
+//! ports `[0, n_in)`, output ports `[n_in, lamp_base)`, lamps
+//! `[lamp_base, gate_base)`, gates `[gate_base, wire_base)`, wires
+//! `[wire_base, end)`. Every group is serialized in ascending id order, so
+//! record `i` of a group always has id `base + i`; the reader relies on both
+//! invariants.
+
 const std = @import("std");
 const util = @import("../util.zig");
 const files = @import("../bridge/files.zig");
@@ -45,6 +54,7 @@ const WireColor = enum(u8) {
     yellow = 4,
 };
 
+/// Per-component tables built while validating file ids and types.
 const Metadata = struct {
     lamp_kind: []LampKind,
     lamp_gate: []u32,
@@ -52,6 +62,8 @@ const Metadata = struct {
     gate_kind: []GateKind,
 };
 
+/// Lamps bucketed by gate (compressed sparse row): gate `g` owns the run
+/// `lamps[start[g]..][0..len[g]]`.
 const LampColumns = struct {
     len: []usize,
     start: []usize,
@@ -196,6 +208,7 @@ fn buildGatesAndLamps(
                 .fault => unreachable,
             };
             if (kind == .or_ or kind == .nor) {
+                // OR/NOR compile as AND/NAND over inverted inputs.
                 for (params) |li| metadata.lamp_initial[li] = !metadata.lamp_initial[li];
             }
             g.state = initialState(g.class, params, metadata.lamp_initial);
@@ -236,6 +249,8 @@ fn buildWireTargets(
         for (rec.fanout, 0..) |id, i| {
             if (id >= lamp_base and id < gate_base) {
                 const li: usize = @intCast(id - lamp_base);
+                // Fault lamp → fault-gate hit; plain lamp on a fault gate →
+                // toggle only; any other lamp → toggle and dirty its gate.
                 targets[i] = if (metadata.lamp_kind[li] == .fault)
                     .{ .fault_gate = metadata.lamp_gate[li] }
                 else if (switch (gates[metadata.lamp_gate[li]].class) {

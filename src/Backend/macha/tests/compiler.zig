@@ -43,21 +43,21 @@ fn serializeWiring(
     for (0..util.HASH_SIZE) |_| try buf.append(a, 0);
     std.mem.writeInt(i32, &tmp, 6, .little);
     try buf.appendSlice(a, &tmp);
-    const table_pos = buf.len;
+    const table_pos = buf.items.len;
     for (0..6) |_| try buf.appendSlice(a, &.{ 0, 0, 0, 0 });
 
     var starts: [6]u32 = undefined;
-    starts[0] = @intCast(buf.len);
+    starts[0] = @intCast(buf.items.len);
     try serNodes(&buf, a, input_ports);
-    starts[1] = @intCast(buf.len);
+    starts[1] = @intCast(buf.items.len);
     try serNodes(&buf, a, output_ports);
-    starts[2] = @intCast(buf.len);
+    starts[2] = @intCast(buf.items.len);
     try serNodes(&buf, a, lamps);
-    starts[3] = @intCast(buf.len);
+    starts[3] = @intCast(buf.items.len);
     try serNodes(&buf, a, gates);
-    starts[4] = @intCast(buf.len);
+    starts[4] = @intCast(buf.items.len);
     try serNodes(&buf, a, wires);
-    starts[5] = @intCast(buf.len);
+    starts[5] = @intCast(buf.items.len);
 
     for (starts, 0..) |s, i| {
         const off = table_pos + i * 4;

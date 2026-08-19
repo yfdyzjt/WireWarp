@@ -85,28 +85,36 @@ pub const Reader = struct {
     }
 };
 
+/// Growable buffer following the std.ArrayList convention: `items` is the
+/// *used* slice (`items.len` is the logical length), `capacity` is the
+/// allocation size and is always >= `items.len`.
 pub fn Buf(comptime T: type) type {
     return struct {
         const Self = @This();
 
         items: []T = &.{},
-        len: usize = 0,
+        capacity: usize = 0,
 
         pub fn init(a: std.mem.Allocator, cap: usize) std.mem.Allocator.Error!Self {
-            return .{ .items = try a.alloc(T, cap), .len = 0 };
+            const alloc = try a.alloc(T, cap);
+            return .{ .items = alloc[0..0], .capacity = alloc.len };
         }
 
         pub fn deinit(self: *Self, a: std.mem.Allocator) void {
-            a.free(self.items);
+            a.free(self.items.ptr[0..self.capacity]);
             self.items = &.{};
-            self.len = 0;
+            self.capacity = 0;
         }
 
         pub fn ensureUnusedCapacity(self: *Self, a: std.mem.Allocator, additional: usize) std.mem.Allocator.Error!void {
-            if (self.items.len - self.len >= additional) return;
-            const needed = self.len + additional;
-            const doubled = self.items.len *| 2; // saturating
-            self.items = try a.realloc(self.items, @max(doubled, needed));
+            if (self.capacity - self.items.len >= additional) return;
+            const used = self.items.len;
+            const needed = used + additional;
+            const doubled = self.capacity *| 2; // saturating
+            const new_cap = @max(doubled, needed);
+            const alloc = try a.realloc(self.items.ptr[0..self.capacity], new_cap);
+            self.items = alloc[0..used];
+            self.capacity = alloc.len;
         }
 
         pub fn append(self: *Self, a: std.mem.Allocator, v: T) std.mem.Allocator.Error!void {
@@ -115,8 +123,8 @@ pub fn Buf(comptime T: type) type {
         }
 
         pub fn appendAssumeCapacity(self: *Self, v: T) void {
-            self.items[self.len] = v;
-            self.len += 1;
+            self.items.ptr[self.items.len] = v;
+            self.items.len += 1;
         }
 
         pub fn appendSlice(self: *Self, a: std.mem.Allocator, s: []const T) std.mem.Allocator.Error!void {
@@ -125,16 +133,16 @@ pub fn Buf(comptime T: type) type {
         }
 
         pub fn appendSliceAssumeCapacity(self: *Self, s: []const T) void {
-            @memcpy(self.items[self.len..][0..s.len], s);
-            self.len += s.len;
+            @memcpy(self.items.ptr[self.items.len..][0..s.len], s);
+            self.items.len += s.len;
         }
 
         pub fn slice(self: *const Self) []const T {
-            return self.items[0..self.len];
+            return self.items;
         }
 
         pub fn clear(self: *Self) void {
-            self.len = 0;
+            self.items.len = 0;
         }
     };
 }
@@ -224,7 +232,7 @@ test "7-bit lengths match C# Write7BitEncodedInt" {
         defer buf.deinit(a);
         try writeString(a, &buf, payload);
         try std.testing.expectEqualSlices(u8, c.bytes, buf.items[0..c.bytes.len]);
-        try std.testing.expectEqual(c.len + c.bytes.len, buf.len);
+        try std.testing.expectEqual(c.len + c.bytes.len, buf.items.len);
     }
 }
 

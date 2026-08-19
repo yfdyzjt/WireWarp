@@ -105,7 +105,7 @@ pub fn main(init: std.process.Init) !void {
         else
             try others.append(arena, in.port_id);
     }
-    if (plates.len == 0 and others.len == 0) return error.NoInputs;
+    if (plates.items.len == 0 and others.items.len == 0) return error.NoInputs;
 
     const bin_path = std.process.Environ.getAlloc(init.minimal.environ, arena, "MACHA_BIN") catch
         return error.NoMachaBin;
@@ -143,11 +143,11 @@ pub fn main(init: std.process.Init) !void {
     var i: u64 = 0;
     while (i < events) : (i += 1) {
         const want_plate = rng.random().uintLessThan(u8, 100) < 99;
-        const pool: []const i32 = if (want_plate and plates.len > 0)
+        const pool: []const i32 = if (want_plate and plates.items.len > 0)
             plates.slice()
-        else if (!want_plate and others.len > 0)
+        else if (!want_plate and others.items.len > 0)
             others.slice()
-        else if (plates.len > 0)
+        else if (plates.items.len > 0)
             plates.slice()
         else
             others.slice();

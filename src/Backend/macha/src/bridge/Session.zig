@@ -271,8 +271,8 @@ fn parseFrameBody(a: std.mem.Allocator, body: []const u8) Error!struct {
 fn packOutputsRle(a: std.mem.Allocator, out: *util.Buf(u8), pairs: *util.Buf(u64), outputs: []const i32) std.mem.Allocator.Error!void {
     pairs.clear();
     for (outputs) |port| {
-        if (pairs.len > 0) {
-            const last = &pairs.items[pairs.len - 1];
+        if (pairs.items.len > 0) {
+            const last = &pairs.items[pairs.items.len - 1];
             if (@as(i32, @bitCast(@as(u32, @truncate(@as(u64, @bitCast(last.*)))))) == port) {
                 last.* += @as(u64, 1) << 32;
                 continue;
@@ -282,7 +282,7 @@ fn packOutputsRle(a: std.mem.Allocator, out: *util.Buf(u8), pairs: *util.Buf(u64
     }
 
     out.clear();
-    try util.writeIntLe(i32, a, out, @intCast(pairs.len));
+    try util.writeIntLe(i32, a, out, @intCast(pairs.items.len));
     for (pairs.slice()) |p| {
         try util.writeIntLe(i32, a, out, @bitCast(@as(u32, @truncate(p))));
         try util.writeIntLe(i32, a, out, @bitCast(@as(u32, @truncate(p >> 32))));

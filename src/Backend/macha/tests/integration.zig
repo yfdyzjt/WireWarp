@@ -30,26 +30,26 @@ fn buildWiring(
     var buf = try util.Buf(u8).init(a, 4096);
     try writeHeader(&buf, a);
     try util.writeIntLe(i32, a, &buf, 6);
-    const table = buf.len;
+    const table = buf.items.len;
     for (0..6) |_| try util.writeIntLe(u32, a, &buf, 0);
     var starts: [6]u32 = undefined;
 
-    starts[0] = @intCast(buf.len);
+    starts[0] = @intCast(buf.items.len);
     try util.writeIntLe(i32, a, &buf, @intCast(input_ports.len));
     for (input_ports) |n| try writeNode(&buf, a, @intCast(n[0]), n[1], &.{n[2]});
-    starts[1] = @intCast(buf.len);
+    starts[1] = @intCast(buf.items.len);
     try util.writeIntLe(i32, a, &buf, @intCast(output_ports.len));
     for (output_ports) |n| try writeNode(&buf, a, @intCast(n[0]), n[1], &.{});
-    starts[2] = @intCast(buf.len);
+    starts[2] = @intCast(buf.items.len);
     try util.writeIntLe(i32, a, &buf, @intCast(lamps.len));
     for (lamps) |n| try writeNode(&buf, a, @intCast(n[0]), n[1], &.{n[2]});
-    starts[3] = @intCast(buf.len);
+    starts[3] = @intCast(buf.items.len);
     try util.writeIntLe(i32, a, &buf, @intCast(gates.len));
     for (gates) |n| try writeNode(&buf, a, @intCast(n[0]), n[1], &.{n[2]});
-    starts[4] = @intCast(buf.len);
+    starts[4] = @intCast(buf.items.len);
     try util.writeIntLe(i32, a, &buf, @intCast(wires.len));
     for (wires) |n| try writeNode(&buf, a, @intCast(n[0]), n[1], &.{n[2]});
-    starts[5] = @intCast(buf.len);
+    starts[5] = @intCast(buf.items.len);
 
     for (starts, 0..) |st, i| {
         std.mem.writeInt(u32, buf.items[table + i * 4 ..][0..4], st, .little);
@@ -61,11 +61,11 @@ fn buildIo(a: std.mem.Allocator) ![]const u8 {
     var buf = try util.Buf(u8).init(a, 512);
     try writeHeader(&buf, a);
     try util.writeIntLe(i32, a, &buf, 8);
-    const table = buf.len;
+    const table = buf.items.len;
     for (0..8) |_| try util.writeIntLe(u32, a, &buf, 0);
     var starts: [8]u32 = undefined;
     for (0..8) |i| {
-        starts[i] = @intCast(buf.len);
+        starts[i] = @intCast(buf.items.len);
         try util.writeIntLe(i32, a, &buf, 0);
     }
     for (starts, 0..) |st, i| {
@@ -462,26 +462,26 @@ test "out_buf stays owned by the session allocator (70 outputs)" {
     var wbuf = try util.Buf(u8).init(a, 4096);
     try writeHeader(&wbuf, a);
     try util.writeIntLe(i32, a, &wbuf, 6);
-    const table = wbuf.len;
+    const table = wbuf.items.len;
     for (0..6) |_| try util.writeIntLe(u32, a, &wbuf, 0);
     var starts: [6]u32 = undefined;
 
-    starts[0] = @intCast(wbuf.len);
+    starts[0] = @intCast(wbuf.items.len);
     try util.writeIntLe(i32, a, &wbuf, 1); // 1 input port
     try writeNode(&wbuf, a, 1, 0, &.{71});
-    starts[1] = @intCast(wbuf.len);
+    starts[1] = @intCast(wbuf.items.len);
     try util.writeIntLe(i32, a, &wbuf, 70); // 70 output ports
     for (0..70) |i| try writeNode(&wbuf, a, 1, @intCast(1 + i), &.{});
-    starts[2] = @intCast(wbuf.len);
+    starts[2] = @intCast(wbuf.items.len);
     try util.writeIntLe(i32, a, &wbuf, 0); // no lamps
-    starts[3] = @intCast(wbuf.len);
+    starts[3] = @intCast(wbuf.items.len);
     try util.writeIntLe(i32, a, &wbuf, 0); // no gates
-    starts[4] = @intCast(wbuf.len);
+    starts[4] = @intCast(wbuf.items.len);
     try util.writeIntLe(i32, a, &wbuf, 1); // 1 wire → all 70 outputs
     var fan: [70]i32 = undefined;
     for (&fan, 0..) |*f, i| f.* = @intCast(1 + i);
     try writeNode(&wbuf, a, 1, 71, &fan);
-    starts[5] = @intCast(wbuf.len);
+    starts[5] = @intCast(wbuf.items.len);
     for (starts, 0..) |st, i| {
         std.mem.writeInt(u32, wbuf.items[table + i * 4 ..][0..4], st, .little);
     }

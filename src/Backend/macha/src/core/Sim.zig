@@ -8,20 +8,48 @@ alloc: std.mem.Allocator,
 g: *const Graph,
 rng: std.Random,
 gate_state: []bool,
-dirty_flag: []bool,
-dirty_gates: []usize,
-dirty_len: usize,
+dirty: Set,
 fault_hits: []u32,
-
-fired_flag: []bool,
-fired_list: []usize,
-fired_len: usize,
+fired: Set,
 
 target_groups: Buf([]const usize),
 out: Buf(i32),
 
 events: u64 = 0,
 checks: u64 = 0,
+
+/// Fixed-capacity ordered set: `push` skips duplicates and preserves
+/// insertion order.
+const Set = struct {
+    flags: []bool,
+    items: []usize,
+    len: usize = 0,
+
+    /// No-op when the index is already in the set.
+    fn push(self: *Set, i: usize) void {
+        if (self.flags[i]) return;
+        self.flags[i] = true;
+        self.items[self.len] = i;
+        self.len += 1;
+    }
+
+    fn contains(self: *const Set, i: usize) bool {
+        return self.flags[i];
+    }
+
+    fn slice(self: *const Set) []const usize {
+        return self.items[0..self.len];
+    }
+
+    fn clear(self: *Set) void {
+        self.len = 0;
+    }
+
+    fn reset(self: *Set) void {
+        @memset(self.flags, false);
+        self.len = 0;
+    }
+};
 
 pub fn init(a: std.mem.Allocator, g: *const Graph, seed: u64) std.mem.Allocator.Error!Sim {
     const gate_count = g.gates.len;
@@ -53,13 +81,9 @@ pub fn init(a: std.mem.Allocator, g: *const Graph, seed: u64) std.mem.Allocator.
         .g = g,
         .rng = prng.random(),
         .gate_state = gate_state,
-        .dirty_flag = dirty_flag,
-        .dirty_gates = dirty_gates,
-        .dirty_len = 0,
+        .dirty = .{ .flags = dirty_flag, .items = dirty_gates },
         .fault_hits = fault_hits,
-        .fired_flag = fired_flag,
-        .fired_list = fired_list,
-        .fired_len = 0,
+        .fired = .{ .flags = fired_flag, .items = fired_list },
         .target_groups = try Buf([]const usize).init(a, @max(gate_count, 1)),
         .out = try Buf(i32).init(a, 64),
     };
@@ -68,8 +92,7 @@ pub fn init(a: std.mem.Allocator, g: *const Graph, seed: u64) std.mem.Allocator.
 pub fn reset(self: *Sim) void {
     for (self.g.lamps) |*l| l.on = l.initial;
     for (self.g.gates, 0..) |gate, i| self.gate_state[i] = gate.state;
-    @memset(self.dirty_flag, false);
-    self.clearLayer();
+    self.dirty.reset();
     @memset(self.fault_hits, 0);
     self.clearEvent();
 }
@@ -80,13 +103,12 @@ pub fn reset(self: *Sim) void {
 pub fn event(self: *Sim, port: i32) std.mem.Allocator.Error![]const i32 {
     self.events += 1;
     self.clearEvent();
-    std.debug.assert(self.dirty_len == 0);
+    std.debug.assert(self.dirty.len == 0);
     if (port >= 0 and port < @as(i32, @intCast(self.g.input_ports.len))) {
         self.target_groups.appendAssumeCapacity(self.g.input_ports[@intCast(port)].wires);
     }
 
-    while (self.target_groups.len > 0) {
-        self.dirty_len = 0;
+    while (self.target_groups.items.len > 0) {
         for (self.target_groups.slice()) |wires| {
             for (wires) |w| {
                 for (self.g.wires[w].targets) |t| {
@@ -94,7 +116,7 @@ pub fn event(self: *Sim, port: i32) std.mem.Allocator.Error![]const i32 {
                         .lamp => |li| {
                             const cell = &self.g.lamps[li];
                             cell.on = !cell.on;
-                            self.markDirty(cell.gate);
+                            self.dirty.push(cell.gate);
                         },
                         .lamp_on_fault => |li| {
                             const cell = &self.g.lamps[li];
@@ -102,7 +124,7 @@ pub fn event(self: *Sim, port: i32) std.mem.Allocator.Error![]const i32 {
                         },
                         .fault_gate => |gi| {
                             if (self.g.gates[gi].class == .fault_n) self.fault_hits[gi] += 1;
-                            self.markDirty(gi);
+                            self.dirty.push(gi);
                         },
                         .output_port => |p| try self.out.append(self.alloc, p),
                     }
@@ -111,18 +133,15 @@ pub fn event(self: *Sim, port: i32) std.mem.Allocator.Error![]const i32 {
         }
         self.target_groups.clear();
 
-        for (self.dirty_gates[0..self.dirty_len]) |gi| {
-            self.dirty_flag[gi] = false;
+        for (self.dirty.slice()) |gi| {
+            self.dirty.flags[gi] = false;
             self.checks += 1;
-            const pulse = self.evaluate(gi);
-            if (pulse and !self.fired_flag[gi]) {
-                self.fired_flag[gi] = true;
-                self.fired_list[self.fired_len] = gi;
-                self.fired_len += 1;
+            if (self.evaluate(gi) and !self.fired.contains(gi)) {
+                self.fired.push(gi);
                 self.target_groups.appendAssumeCapacity(self.g.gates[gi].wires);
             }
         }
-        self.clearLayer();
+        self.dirty.clear();
     }
 
     return self.out.slice();
@@ -185,18 +204,5 @@ fn checkChanged(self: *Sim, gi: usize, cur: bool) bool {
 fn clearEvent(self: *Sim) void {
     self.out.clear();
     self.target_groups.clear();
-    for (self.fired_list[0..self.fired_len]) |gi| self.fired_flag[gi] = false;
-    self.fired_len = 0;
-}
-
-fn clearLayer(self: *Sim) void {
-    self.dirty_len = 0;
-}
-
-fn markDirty(self: *Sim, gi: usize) void {
-    if (!self.dirty_flag[gi]) {
-        self.dirty_flag[gi] = true;
-        self.dirty_gates[self.dirty_len] = gi;
-        self.dirty_len += 1;
-    }
+    self.fired.reset();
 }

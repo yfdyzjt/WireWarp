@@ -187,11 +187,11 @@ test "parses a minimal wiring file" {
     for (0..util.HASH_SIZE) |_| try buf.append(a, 0x42);
     std.mem.writeInt(i32, &int_buf, 6, .little);
     try buf.appendSlice(a, &int_buf);
-    const table_pos = buf.len;
+    const table_pos = buf.items.len;
     for (0..6) |_| try buf.appendSlice(a, &.{ 0, 0, 0, 0 });
 
     var starts: [6]u32 = undefined;
-    starts[0] = @intCast(buf.len);
+    starts[0] = @intCast(buf.items.len);
     std.mem.writeInt(i32, &int_buf, 1, .little);
     try buf.appendSlice(a, &int_buf);
     try buf.append(a, 1); // type
@@ -201,19 +201,19 @@ test "parses a minimal wiring file" {
     try buf.appendSlice(a, &int_buf); // fanout count
     std.mem.writeInt(i32, &int_buf, 30, .little);
     try buf.appendSlice(a, &int_buf); // fanout
-    starts[1] = @intCast(buf.len);
+    starts[1] = @intCast(buf.items.len);
     std.mem.writeInt(i32, &int_buf, 0, .little);
     try buf.appendSlice(a, &int_buf);
-    starts[2] = @intCast(buf.len);
+    starts[2] = @intCast(buf.items.len);
     std.mem.writeInt(i32, &int_buf, 0, .little);
     try buf.appendSlice(a, &int_buf);
-    starts[3] = @intCast(buf.len);
+    starts[3] = @intCast(buf.items.len);
     std.mem.writeInt(i32, &int_buf, 0, .little);
     try buf.appendSlice(a, &int_buf);
-    starts[4] = @intCast(buf.len);
+    starts[4] = @intCast(buf.items.len);
     std.mem.writeInt(i32, &int_buf, 0, .little);
     try buf.appendSlice(a, &int_buf);
-    starts[5] = @intCast(buf.len);
+    starts[5] = @intCast(buf.items.len);
 
     for (starts, 0..) |s, i| {
         const off = table_pos + i * 4;

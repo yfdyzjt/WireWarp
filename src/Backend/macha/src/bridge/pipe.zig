@@ -28,6 +28,10 @@ pub const ConnectError = error{
 /// Connect to the first candidate location that answers.
 pub fn connect(alloc: std.mem.Allocator, override_path: ?[]const u8) ConnectError!Handle {
     const paths = try candidatePaths(alloc, override_path);
+    defer {
+        for (paths) |p| alloc.free(p);
+        alloc.free(paths);
+    }
     if (paths.len == 0) return error.NoCandidatePaths;
 
     var last_error = error.ConnectFailed;

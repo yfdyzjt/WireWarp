@@ -72,8 +72,8 @@ pub fn readMessage(fd: pipe.Handle, a: std.mem.Allocator, body: *util.Buf(u8)) R
     body.clear();
     try body.ensureUnusedCapacity(a, len);
     if (len > 0) {
-        if (!try readExact(fd, body.items[0..len])) return error.Truncated;
-        body.len = len;
+        if (!try readExact(fd, body.items.ptr[0..len])) return error.Truncated;
+        body.items.len = len;
     }
     return .{ .tag = t, .id = id, .body = body.slice() };
 }
