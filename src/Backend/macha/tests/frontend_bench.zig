@@ -1,5 +1,6 @@
 const std = @import("std");
 const macha = @import("macha");
+const bench = @import("bench.zig");
 const protocol = macha.protocol;
 const util = macha.util;
 
@@ -96,16 +97,8 @@ pub fn main(init: std.process.Init) !void {
     @memcpy(world_hash[0..], wwir[8 .. 8 + hash_size]);
 
     const iof = try macha.files.parseIo(arena, wwio);
-    const plate_type = macha.files.InputType.projectile_pressure_pad; // the clock sources
-    var plates = try util.Buf(i32).init(arena, 64);
-    var others = try util.Buf(i32).init(arena, 64);
-    for (iof.inputs) |in| {
-        if (in.type_ == @intFromEnum(plate_type))
-            try plates.append(arena, in.port_id)
-        else
-            try others.append(arena, in.port_id);
-    }
-    if (plates.items.len == 0 and others.items.len == 0) return error.NoInputs;
+    const pool = try bench.partitionInputs(arena, &iof);
+    if (pool.empty()) return error.NoInputs;
 
     const bin_path = std.process.Environ.getAlloc(init.minimal.environ, arena, "MACHA_BIN") catch
         return error.NoMachaBin;
@@ -142,16 +135,7 @@ pub fn main(init: std.process.Init) !void {
 
     var i: u64 = 0;
     while (i < events) : (i += 1) {
-        const want_plate = rng.random().uintLessThan(u8, 100) < 99;
-        const pool: []const i32 = if (want_plate and plates.items.len > 0)
-            plates.slice()
-        else if (!want_plate and others.items.len > 0)
-            others.slice()
-        else if (plates.items.len > 0)
-            plates.slice()
-        else
-            others.slice();
-        const port = pool[rng.random().uintLessThan(usize, pool.len)];
+        const port = pool.pickPort(rng.random()).?;
 
         frame_buf.clear();
         try frame_buf.append(arena, 1); // run

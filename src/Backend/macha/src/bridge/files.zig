@@ -49,7 +49,7 @@ pub const IoFile = struct {
 };
 
 /// Mirrors the frontend's `InputID`: the game device that produces an input
-/// event. Only the bench/replay harnesses consume it; the sim addresses
+/// event. Only the bench harness consumes it; the sim addresses
 /// inputs purely by port id.
 pub const InputType = enum(u8) {
     none = 0,

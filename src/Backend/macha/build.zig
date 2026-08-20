@@ -73,4 +73,22 @@ pub fn build(b: *std.Build) void {
         const bench_step = b.step("frontend-bench", "Measure mock-frontend pipe round-trip latency");
         bench_step.dependOn(&run_bench.step);
     }
+
+    const sim_bench_module = b.createModule(.{
+        .root_source_file = b.path("tests/sim_bench.zig"),
+        .target = target,
+        .optimize = optimize,
+        .strip = strip,
+        .imports = &.{.{ .name = "macha", .module = mod }},
+    });
+    const sim_bench_exe = b.addExecutable(.{
+        .name = "sim-bench",
+        .root_module = sim_bench_module,
+    });
+    b.installArtifact(sim_bench_exe);
+    const run_sim_bench = b.addRunArtifact(sim_bench_exe);
+    run_sim_bench.step.dependOn(b.getInstallStep());
+    if (b.args) |args| run_sim_bench.addArgs(args);
+    const sim_bench_step = b.step("sim-bench", "Headless simulation benchmark");
+    sim_bench_step.dependOn(&run_sim_bench.step);
 }

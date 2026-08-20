@@ -15,3 +15,9 @@ The binary is written to `zig-out/bin/macha`.
 ```sh
 macha serve
 ```
+
+## Bench
+
+```sh
+zig build sim-bench --release=fast -- <world.wwld> [events]
+```
