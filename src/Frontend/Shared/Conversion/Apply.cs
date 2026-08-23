@@ -1,5 +1,4 @@
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.ID;
 using WireWarp.Frontend.Shared.Terraria.ID;
 
 namespace WireWarp.Frontend.Shared.Conversion;

@@ -1,5 +1,5 @@
 using System.Reflection;
-using WireWarp.Frontend.Shared.ID;
+using WireWarp.Frontend.Shared.Data;
 
 namespace WireWarp.Frontend.tModLoader.IO;
 

@@ -1,6 +1,5 @@
 using Terraria;
 using WireWarp.Frontend.Shared.Data;
-using WireWarp.Frontend.Shared.ID;
 
 namespace WireWarp.Frontend.tModLoader.IO;
 

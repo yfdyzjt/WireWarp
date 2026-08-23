@@ -1,4 +1,4 @@
-using WireWarp.Frontend.Shared.ID;
+using WireWarp.Frontend.Shared.Data;
 using WireWarp.Frontend.Shared.Terraria;
 
 namespace WireWarp.Frontend.Shared;
