@@ -185,16 +185,16 @@ public static class Transport
         w.Write(body);
 
         _pipe!.Write(ms.GetBuffer(), 0, (int)ms.Length);
-        
+
         _sendTime = Stopwatch.GetTimestamp();
     }
 
     private static (Tag tag, long messageId, byte[] body) ReadMessage()
     {
-        _ackTime = Stopwatch.GetTimestamp();
-
         var header = new byte[20];
         _pipe!.ReadExactly(header);
+
+        _ackTime = Stopwatch.GetTimestamp();
 
         uint magic; ushort version; ushort tag; long id; int length;
 
