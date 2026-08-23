@@ -5,10 +5,21 @@
             "name": "tModLoader",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build-all",
+            "preLaunchTask": "build-tModLoader",
             "program": "dotnet",
             "args": ["tModLoader.dll"],
             "cwd": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\tModLoader",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Reference",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-reference",
+            "program": "dotnet",
+            "args": ["${workspaceFolder}/src/Backend/Reference/bin/Debug/net10.0/WireWarp.Backend.Reference.dll"],
+            "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "stopAtEntry": false
         }

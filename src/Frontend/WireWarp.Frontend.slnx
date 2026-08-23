@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Shared/WireWarp.Frontend.Shared.csproj" />
+  <Project Path="tModLoader/WireWarp/WireWarp.Frontend.tModLoader.csproj" />
+</Solution>

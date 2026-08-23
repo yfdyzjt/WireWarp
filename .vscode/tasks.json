@@ -4,28 +4,36 @@
         {
             "label": "build-tml",
             "command": "dotnet",
-            "args": ["build", "src/Frontend/tModLoader/WireWarp/WireWarp.Frontend.tModLoader.csproj"],
             "type": "shell",
-            "group": "build",
-            "presentation": { "reveal": "silent" },
+            "args": [
+                "build",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary",
+                "src/Frontend/tModLoader/WireWarp/WireWarp.Frontend.tModLoader.csproj"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "silent"
+            },
             "problemMatcher": "$msCompile"
         },
         {
-            "label": "build-csharp",
+            "label": "build-reference",
             "command": "dotnet",
-            "args": ["build", "src/Backend/CSharp/WireWarp.Backend.CSharp.csproj"],
             "type": "shell",
+            "args": [
+                "build",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary",
+                "src/Backend/Reference/WireWarp.Backend.Reference.csproj"
+            ],
             "group": "build",
-            "presentation": { "reveal": "silent" },
-            "problemMatcher": "$msCompile"
-        },
-        {
-            "label": "build-all",
-            "command": "dotnet",
-            "args": ["build", "src/WireWarp.slnx"],
-            "type": "shell",
-            "group": "build",
-            "presentation": { "reveal": "silent" },
+            "presentation": {
+                "reveal": "silent"
+            },
             "problemMatcher": "$msCompile"
         }
     ]

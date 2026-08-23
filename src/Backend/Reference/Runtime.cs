@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace WireWarp.Backend.CSharp;
+namespace WireWarp.Backend.Reference;
 
 public static class Runtime
 {

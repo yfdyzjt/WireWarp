@@ -1,6 +1,6 @@
 using System.IO.Pipes;
 
-namespace WireWarp.Backend.CSharp;
+namespace WireWarp.Backend.Reference;
 
 public static class Transport
 {

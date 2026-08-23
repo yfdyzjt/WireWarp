@@ -1,6 +1,6 @@
-using WireWarp.Backend.CSharp.Data;
+using WireWarp.Backend.Reference.Data;
 
-namespace WireWarp.Backend.CSharp.File;
+namespace WireWarp.Backend.Reference.File;
 
 public static class WiringFile
 {

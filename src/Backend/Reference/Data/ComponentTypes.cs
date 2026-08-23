@@ -1,4 +1,4 @@
-namespace WireWarp.Backend.CSharp.Data;
+namespace WireWarp.Backend.Reference.Data;
 
 public enum WireID : byte
 {

@@ -1,5 +1,0 @@
-﻿<Solution>
-  <Project Path="Frontend/Shared/WireWarp.Frontend.Shared.csproj" />
-  <Project Path="Frontend/tModLoader/WireWarp/WireWarp.Frontend.tModLoader.csproj" />
-  <Project Path="Backend/CSharp/WireWarp.Backend.CSharp.csproj" />
-</Solution>

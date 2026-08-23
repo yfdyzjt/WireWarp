@@ -1,4 +1,4 @@
-namespace WireWarp.Backend.CSharp;
+namespace WireWarp.Backend.Reference;
 
 internal static class Program
 {

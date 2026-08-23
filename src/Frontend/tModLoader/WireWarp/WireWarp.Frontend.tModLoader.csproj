@@ -6,6 +6,9 @@
     <Author>WireWarp</Author>
     <DisplayName>WireWarp</DisplayName>
     <ModSide>Both</ModSide>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
