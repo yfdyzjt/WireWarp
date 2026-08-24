@@ -109,7 +109,8 @@ public static class Transport
 
             WriteMessage(Tag.Frame, PackFrame(run, tick, inputs));
 
-            _pendingFrame = Task.Run(ReadMessage);
+            _pendingFrame = Task.Factory.StartNew(ReadMessageAsync, CancellationToken.None,
+                TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
             _ = _pendingFrame.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
         }
         catch (Exception e) { throw new Exception($"Backend frame failed: {e.Message}", e); }
@@ -135,7 +136,7 @@ public static class Transport
             throw new Exception($"Backend frame failed: {ack.status} {ack.message}");
 
         WriteMessage(tag, body);
-        var (respTag, id, respBody) = ReadMessage();
+        var (respTag, id, respBody) = ReadMessageAsync().GetAwaiter().GetResult();
 
         CheckResponse(tag, respTag, id);
 
@@ -189,10 +190,10 @@ public static class Transport
         _sendTime = Stopwatch.GetTimestamp();
     }
 
-    private static (Tag tag, long messageId, byte[] body) ReadMessage()
+    private static async Task<(Tag tag, long messageId, byte[] body)> ReadMessageAsync()
     {
         var header = new byte[20];
-        _pipe!.ReadExactly(header);
+        await _pipe!.ReadExactlyAsync(header).ConfigureAwait(false);
 
         _ackTime = Stopwatch.GetTimestamp();
 
@@ -211,7 +212,7 @@ public static class Transport
         if (version != Version) throw new InvalidDataException("Header version mismatch");
 
         var body = new byte[length];
-        _pipe.ReadExactly(body);
+        await _pipe.ReadExactlyAsync(body).ConfigureAwait(false);
         return ((Tag)tag, id, body);
     }
 

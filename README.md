@@ -8,7 +8,7 @@ A high-performance gate-level acceleration platform for Terraria wiring, with se
 | --- | --- | --- |
 | Frontend | Converts the world's wiring into an intermediate representation | Sends world inputs to the backend and applies the returned outputs to the world |
 | Backend | Converts the wiring intermediate representation into a high-performance representation | Receives frontend inputs, runs the wiring simulation, and returns outputs to the frontend |
-| Communication | `.wwld` world backup; `.wwio` IO graph; `.wwir` wiring graph | Communicates over Named Pipe IPC |
+| Communication | `.wwld` world backup; `.wwio` io graph; `.wwir` wiring graph | Communicates over Named Pipe IPC |
 
 ## Frontends
 
