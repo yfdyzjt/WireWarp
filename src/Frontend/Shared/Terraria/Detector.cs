@@ -69,13 +69,13 @@ internal static class Detector
         HasTile(tile) && GateTable[tile.type];
 
     public static bool HasLamp(Tile tile) =>
-        HasTile(tile) && !tile.HasActuator && LampTable[tile.type];
+        HasTile(tile) && LampTable[tile.type] && !tile.HasActuator;
 
     public static bool HasInput(Tile tile) =>
         HasTile(tile) && InputTable[tile.type];
 
     public static bool HasOutput(Tile tile) =>
-        HasTile(tile) && (tile.HasActuator || OutputTable[tile.type]);
+        (HasTile(tile) && OutputTable[tile.type]) || tile.HasActuator;
 
     public static bool HasJunctionBox(Tile tile) =>
         HasTile(tile) && JunctionBoxTable[tile.type];
