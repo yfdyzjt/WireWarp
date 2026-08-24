@@ -9,7 +9,6 @@ const Target = Graph.Target;
 const Lamp = Graph.Lamp;
 const Wire = Graph.Wire;
 const InputPort = Graph.InputPort;
-const Buf = macha.util.Buf;
 
 const testing = std.testing;
 
@@ -138,11 +137,11 @@ test "gate_1 relay: double hit silent, toggles pulse" {
         .{ .port = 1, .wires = &.{0} }, // single hit
     });
     var sim = try Sim.init(a, &g, 1);
-    var all = try Buf(i32).init(a, 16);
+    var all = try std.ArrayList(i32).initCapacity(a, 16);
     for ([_]i32{ 0, 1, 1, 0, 1 }) |port| {
         try all.appendSlice(a, try sim.event(port));
     }
-    try testing.expectEqualSlices(i32, &.{ 7, 7, 7 }, all.slice());
+    try testing.expectEqualSlices(i32, &.{ 7, 7, 7 }, all.items);
 }
 
 test "gate_n_and: NOR pulses on state change" {

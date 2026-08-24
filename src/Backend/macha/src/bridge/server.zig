@@ -38,9 +38,9 @@ pub fn serve(
     last_request_id: *i64,
     empty: bool,
 ) ServeError!void {
-    var msg_buf = try util.Buf(u8).init(backend.alloc, 4096);
+    var msg_buf = try std.ArrayList(u8).initCapacity(backend.alloc, 4096);
     defer msg_buf.deinit(backend.alloc);
-    var ack_buf = try util.Buf(u8).init(backend.alloc, 4096);
+    var ack_buf = try std.ArrayList(u8).initCapacity(backend.alloc, 4096);
     defer ack_buf.deinit(backend.alloc);
 
     while (true) {
@@ -64,7 +64,7 @@ pub fn serve(
             try protocol.packAck(backend.alloc, &ack_buf, ack.status, ack.message, ack.payload);
         }
         send_id.* += 1;
-        protocol.writeMessage(fd, protocol.ackTagOf(msg.tag), send_id.*, ack_buf.slice()) catch
+        protocol.writeMessage(fd, protocol.ackTagOf(msg.tag), send_id.*, ack_buf.items) catch
             return error.IoError;
     }
 }

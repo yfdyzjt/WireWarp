@@ -54,7 +54,7 @@ pub const ReadError = error{
     BadHeader,
 } || std.mem.Allocator.Error;
 
-pub fn readMessage(fd: pipe.Handle, a: std.mem.Allocator, body: *util.Buf(u8)) ReadError!?Message {
+pub fn readMessage(fd: pipe.Handle, a: std.mem.Allocator, body: *std.ArrayList(u8)) ReadError!?Message {
     var header: [header_len]u8 = undefined;
     if (!try readExact(fd, &header)) return null;
 
@@ -69,13 +69,13 @@ pub fn readMessage(fd: pipe.Handle, a: std.mem.Allocator, body: *util.Buf(u8)) R
     if (v != version) return error.BadHeader;
     if (len > max_body_len) return error.BadHeader;
 
-    body.clear();
+    body.clearRetainingCapacity();
     try body.ensureUnusedCapacity(a, len);
     if (len > 0) {
         if (!try readExact(fd, body.items.ptr[0..len])) return error.Truncated;
         body.items.len = len;
     }
-    return .{ .tag = t, .id = id, .body = body.slice() };
+    return .{ .tag = t, .id = id, .body = body.items };
 }
 
 fn readExact(fd: pipe.Handle, buf: []u8) ReadError!bool {
@@ -115,8 +115,8 @@ fn writeAll(fd: pipe.Handle, bytes: []const u8) WriteError!void {
     }
 }
 
-pub fn packAck(a: std.mem.Allocator, buf: *util.Buf(u8), status: i32, message: []const u8, payload: []const u8) std.mem.Allocator.Error!void {
-    buf.clear();
+pub fn packAck(a: std.mem.Allocator, buf: *std.ArrayList(u8), status: i32, message: []const u8, payload: []const u8) std.mem.Allocator.Error!void {
+    buf.clearRetainingCapacity();
     try util.writeIntLe(i32, a, buf, status);
     try util.writeString(a, buf, message);
     try buf.appendSlice(a, payload);
@@ -128,12 +128,12 @@ pub fn ackTagOf(t: Tag) Tag {
 
 const testing = std.testing;
 
-fn pair(a: std.mem.Allocator) !struct { peer: std.posix.socket_t, ours: std.posix.socket_t, buf: *util.Buf(u8) } {
+fn pair(a: std.mem.Allocator) !struct { peer: std.posix.socket_t, ours: std.posix.socket_t, buf: *std.ArrayList(u8) } {
     var sv: [2]std.posix.socket_t = undefined;
     const rc = std.posix.system.socketpair(std.posix.AF.UNIX, std.posix.SOCK.STREAM, 0, &sv);
     if (std.posix.errno(rc) != .SUCCESS) return error.SocketPairFailed;
-    const buf = try a.create(util.Buf(u8));
-    buf.* = try util.Buf(u8).init(a, 64);
+    const buf = try a.create(std.ArrayList(u8));
+    buf.* = try std.ArrayList(u8).initCapacity(a, 64);
     return .{ .peer = sv[0], .ours = sv[1], .buf = buf };
 }
 
@@ -223,10 +223,10 @@ test "bad magic rejected" {
 
 test "ack pack layout" {
     const a = std.testing.allocator;
-    var buf = try util.Buf(u8).init(a, 64);
+    var buf = try std.ArrayList(u8).initCapacity(a, 64);
     defer buf.deinit(a);
     try packAck(a, &buf, 0, "ok", &.{ 1, 2, 3 });
-    var r = util.Reader.init(buf.slice());
+    var r = util.Reader.init(buf.items);
     try testing.expectEqual(@as(i32, 0), try r.readI32());
     try testing.expectEqualStrings("ok", try r.readString());
     try testing.expectEqualSlices(u8, &.{ 1, 2, 3 }, try r.readBytes(3));

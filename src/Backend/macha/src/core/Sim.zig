@@ -1,7 +1,7 @@
 const Sim = @This();
 
 const std = @import("std");
-const Buf = @import("../util.zig").Buf;
+const ArrayList = std.ArrayList;
 const Set = @import("../util.zig").Set;
 const Graph = @import("Graph.zig");
 
@@ -13,8 +13,8 @@ dirty: Set,
 fault_hits: []u32,
 fired: Set,
 
-target_groups: Buf([]const usize),
-out: Buf(i32),
+target_groups: ArrayList([]const usize),
+out: ArrayList(i32),
 
 events: u64 = 0,
 checks: u64 = 0,
@@ -52,8 +52,8 @@ pub fn init(a: std.mem.Allocator, g: *const Graph, seed: u64) std.mem.Allocator.
         .dirty = .{ .flags = dirty_flag, .items = dirty_gates },
         .fault_hits = fault_hits,
         .fired = .{ .flags = fired_flag, .items = fired_list },
-        .target_groups = try Buf([]const usize).init(a, @max(gate_count, 1)),
-        .out = try Buf(i32).init(a, 64),
+        .target_groups = try ArrayList([]const usize).initCapacity(a, @max(gate_count, 1)),
+        .out = try ArrayList(i32).initCapacity(a, 64),
     };
 }
 
@@ -77,7 +77,7 @@ pub fn event(self: *Sim, port: i32) std.mem.Allocator.Error![]const i32 {
     }
 
     while (self.target_groups.items.len > 0) {
-        for (self.target_groups.slice()) |wires| {
+        for (self.target_groups.items) |wires| {
             for (wires) |w| {
                 for (self.g.wires[w].targets) |t| {
                     switch (t) {
@@ -99,7 +99,7 @@ pub fn event(self: *Sim, port: i32) std.mem.Allocator.Error![]const i32 {
                 }
             }
         }
-        self.target_groups.clear();
+        self.target_groups.clearRetainingCapacity();
 
         for (self.dirty.slice()) |gi| {
             self.dirty.flags[gi] = false;
@@ -112,7 +112,7 @@ pub fn event(self: *Sim, port: i32) std.mem.Allocator.Error![]const i32 {
         self.dirty.clear();
     }
 
-    return self.out.slice();
+    return self.out.items;
 }
 
 fn evaluate(self: *Sim, gi: usize) bool {
@@ -170,8 +170,8 @@ fn checkChanged(self: *Sim, gi: usize, cur: bool) bool {
 }
 
 fn clearEvent(self: *Sim) void {
-    self.out.clear();
-    self.target_groups.clear();
+    self.out.clearRetainingCapacity();
+    self.target_groups.clearRetainingCapacity();
     // Reset only the flags this event actually set: a full-array memset
     // costs O(gate_count) cache-polluting writes per event.
     for (self.fired.slice()) |gi| self.fired.flags[gi] = false;

@@ -32,8 +32,8 @@ pub const Partition = struct {
 };
 
 pub fn partitionInputs(a: std.mem.Allocator, iof: *const macha.files.IoFile) std.mem.Allocator.Error!Partition {
-    var plates = try macha.util.Buf(i32).init(a, 64);
-    var others = try macha.util.Buf(i32).init(a, 64);
+    var plates = try std.ArrayList(i32).initCapacity(a, 64);
+    var others = try std.ArrayList(i32).initCapacity(a, 64);
     const plate_type = macha.files.InputType.projectile_pressure_pad;
     for (iof.inputs) |in| {
         if (in.type_ == @intFromEnum(plate_type))
@@ -41,7 +41,7 @@ pub fn partitionInputs(a: std.mem.Allocator, iof: *const macha.files.IoFile) std
         else
             try others.append(a, in.port_id);
     }
-    return .{ .plates = plates.slice(), .others = others.slice() };
+    return .{ .plates = plates.items, .others = others.items };
 }
 
 pub fn printInputTypes(iof: *const macha.files.IoFile) void {

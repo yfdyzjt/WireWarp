@@ -6,13 +6,13 @@ const util = macha.util;
 const testing = std.testing;
 const hash: [util.HASH_SIZE]u8 = [_]u8{0xAB} ** util.HASH_SIZE;
 
-fn writeHeader(buf: *util.Buf(u8), a: std.mem.Allocator) !void {
+fn writeHeader(buf: *std.ArrayList(u8), a: std.mem.Allocator) !void {
     try util.writeIntLe(u32, a, buf, util.MAGIC);
     try util.writeIntLe(u32, a, buf, util.FILE_VERSION);
     try buf.appendSlice(a, &hash);
 }
 
-fn writeNode(buf: *util.Buf(u8), a: std.mem.Allocator, type_: u8, id: i32, fanout: []const i32) !void {
+fn writeNode(buf: *std.ArrayList(u8), a: std.mem.Allocator, type_: u8, id: i32, fanout: []const i32) !void {
     try buf.append(a, type_);
     try util.writeIntLe(i32, a, buf, id);
     try util.writeIntLe(i32, a, buf, @intCast(fanout.len));
@@ -27,7 +27,7 @@ fn buildWiring(
     gates: []const [3]i32,
     wires: []const [3]i32,
 ) ![]const u8 {
-    var buf = try util.Buf(u8).init(a, 4096);
+    var buf = try std.ArrayList(u8).initCapacity(a, 4096);
     try writeHeader(&buf, a);
     try util.writeIntLe(i32, a, &buf, 6);
     const table = buf.items.len;
@@ -54,11 +54,11 @@ fn buildWiring(
     for (starts, 0..) |st, i| {
         std.mem.writeInt(u32, buf.items[table + i * 4 ..][0..4], st, .little);
     }
-    return buf.slice();
+    return buf.items;
 }
 
 fn buildIo(a: std.mem.Allocator) ![]const u8 {
-    var buf = try util.Buf(u8).init(a, 512);
+    var buf = try std.ArrayList(u8).initCapacity(a, 512);
     try writeHeader(&buf, a);
     try util.writeIntLe(i32, a, &buf, 8);
     const table = buf.items.len;
@@ -71,13 +71,13 @@ fn buildIo(a: std.mem.Allocator) ![]const u8 {
     for (starts, 0..) |st, i| {
         std.mem.writeInt(u32, buf.items[table + i * 4 ..][0..4], st, .little);
     }
-    return buf.slice();
+    return buf.items;
 }
 
 const Mock = struct {
     a: std.mem.Allocator,
     fd: std.posix.socket_t,
-    buf: util.Buf(u8),
+    buf: std.ArrayList(u8),
     send_id: i64,
     last_id: i64,
 
@@ -100,10 +100,10 @@ const Mock = struct {
     }
 
     fn syncTo(self: *Mock, world_path: []const u8) !Ack {
-        var body = try util.Buf(u8).init(self.a, 256);
+        var body = try std.ArrayList(u8).initCapacity(self.a, 256);
         try body.appendSlice(self.a, &hash);
         try util.writeString(self.a, &body, world_path);
-        return self.request(.sync_to, body.slice());
+        return self.request(.sync_to, body.items);
     }
 
     fn startup(self: *Mock) !Ack {
@@ -111,7 +111,7 @@ const Mock = struct {
     }
 
     fn frame(self: *Mock, run: bool, tick: i64, inputs: []const [2]i32) !Ack {
-        var body = try util.Buf(u8).init(self.a, 256);
+        var body = try std.ArrayList(u8).initCapacity(self.a, 256);
         try body.append(self.a, @intFromBool(run));
         try util.writeIntLe(i64, self.a, &body, tick);
         try util.writeIntLe(i32, self.a, &body, @intCast(inputs.len));
@@ -119,7 +119,7 @@ const Mock = struct {
             try util.writeIntLe(i32, self.a, &body, in[0]);
             try util.writeIntLe(i32, self.a, &body, in[1]);
         }
-        return self.request(.frame, body.slice());
+        return self.request(.frame, body.items);
     }
 
     fn reset(self: *Mock) !Ack {
@@ -256,7 +256,7 @@ fn startSession(a: std.mem.Allocator, wiring: []const u8, io_file: []const u8) !
         .mock = .{
             .a = a,
             .fd = conn,
-            .buf = try util.Buf(u8).init(a, 4096),
+            .buf = try std.ArrayList(u8).initCapacity(a, 4096),
             .send_id = 0,
             .last_id = 0,
         },
@@ -374,10 +374,10 @@ test "sync_to rejects hash mismatch" {
     var s = try startSession(a, files.wiring, files.io);
     defer s.deinit();
 
-    var body = try util.Buf(u8).init(a, 256);
+    var body = try std.ArrayList(u8).initCapacity(a, 256);
     try body.appendSlice(a, &([_]u8{0x11} ** util.HASH_SIZE));
     try util.writeString(a, &body, s.world_path);
-    var ack = try s.mock.request(.sync_to, body.slice());
+    var ack = try s.mock.request(.sync_to, body.items);
     try testing.expectEqual(@as(i32, 1), ack.status);
     try testing.expect(std.mem.indexOf(u8, ack.message, "mismatch") != null);
 
@@ -403,11 +403,11 @@ test "backend rejects id gap without a reply" {
 
     // Send a request with a skipped message id (expect 3, send 4): the
     // backend must detect the gap and drop the connection without a reply.
-    var body = try util.Buf(u8).init(a, 64);
+    var body = try std.ArrayList(u8).initCapacity(a, 64);
     try body.append(a, 1);
     try util.writeIntLe(i64, a, &body, 0);
     try util.writeIntLe(i32, a, &body, 0);
-    try protocol.writeMessage(s.mock.fd, .frame, 4, body.slice());
+    try protocol.writeMessage(s.mock.fd, .frame, 4, body.items);
 
     // Wait for readability, then the read must hit a clean EOF.
     var fds = [_]std.posix.pollfd{.{ .fd = s.mock.fd, .events = std.posix.POLL.IN, .revents = 0 }};
@@ -459,7 +459,7 @@ test "out_buf stays owned by the session allocator (70 outputs)" {
     defer arena.deinit();
     const a = arena.allocator();
 
-    var wbuf = try util.Buf(u8).init(a, 4096);
+    var wbuf = try std.ArrayList(u8).initCapacity(a, 4096);
     try writeHeader(&wbuf, a);
     try util.writeIntLe(i32, a, &wbuf, 6);
     const table = wbuf.items.len;
@@ -499,34 +499,34 @@ test "out_buf stays owned by the session allocator (70 outputs)" {
     const io = threaded.io();
     for ([_][]const u8{ wwir_path, wwio_path }) |p| {
         const f = try std.Io.Dir.createFileAbsolute(io, p, .{ .truncate = true });
-        const data = if (std.mem.endsWith(u8, p, "wwir")) wbuf.slice() else iofile;
+        const data = if (std.mem.endsWith(u8, p, "wwir")) wbuf.items else iofile;
         try std.Io.File.writePositionalAll(f, io, data, 0);
     }
 
     var s = try macha.Session.init(a);
     defer s.deinit();
 
-    var sync_body = try util.Buf(u8).init(a, 256);
+    var sync_body = try std.ArrayList(u8).initCapacity(a, 256);
     try sync_body.appendSlice(a, &hash);
     try util.writeString(a, &sync_body, world_path);
-    var ack = s.dispatch(io, .sync_to, sync_body.slice());
+    var ack = s.dispatch(io, .sync_to, sync_body.items);
     try testing.expectEqual(@as(i32, 0), ack.status);
 
-    var frame = try util.Buf(u8).init(a, 256);
+    var frame = try std.ArrayList(u8).initCapacity(a, 256);
     try frame.append(a, 1); // run
     try util.writeIntLe(i64, a, &frame, 0); // tick
     try util.writeIntLe(i32, a, &frame, 1); // one input
     try util.writeIntLe(i32, a, &frame, 0); // port 0
     try util.writeIntLe(i32, a, &frame, 1); // count 1
-    ack = s.dispatch(io, .frame, frame.slice());
+    ack = s.dispatch(io, .frame, frame.items);
     try testing.expectEqual(@as(i32, 0), ack.status);
     try testing.expectEqual(@as(usize, 70), (try unpackOutputs(a, ack.payload)).len);
 
     // Re-sync (releases the world arena) and frame again: under the old bug
     // out_buf pointed into the freed arena and this realloc'd freed memory.
-    ack = s.dispatch(io, .sync_to, sync_body.slice());
+    ack = s.dispatch(io, .sync_to, sync_body.items);
     try testing.expectEqual(@as(i32, 0), ack.status);
-    ack = s.dispatch(io, .frame, frame.slice());
+    ack = s.dispatch(io, .frame, frame.items);
     try testing.expectEqual(@as(i32, 0), ack.status);
     try testing.expectEqual(@as(usize, 70), (try unpackOutputs(a, ack.payload)).len);
 }

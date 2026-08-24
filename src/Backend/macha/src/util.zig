@@ -85,70 +85,8 @@ pub const Reader = struct {
     }
 };
 
-/// Growable buffer following the std.ArrayList convention: `items` is the
-/// *used* slice (`items.len` is the logical length), `capacity` is the
-/// allocation size and is always >= `items.len`.
-pub fn Buf(comptime T: type) type {
-    return struct {
-        const Self = @This();
-
-        items: []T = &.{},
-        capacity: usize = 0,
-
-        pub fn init(a: std.mem.Allocator, cap: usize) std.mem.Allocator.Error!Self {
-            const alloc = try a.alloc(T, cap);
-            return .{ .items = alloc[0..0], .capacity = alloc.len };
-        }
-
-        pub fn deinit(self: *Self, a: std.mem.Allocator) void {
-            a.free(self.items.ptr[0..self.capacity]);
-            self.items = &.{};
-            self.capacity = 0;
-        }
-
-        pub fn ensureUnusedCapacity(self: *Self, a: std.mem.Allocator, additional: usize) std.mem.Allocator.Error!void {
-            if (self.capacity - self.items.len >= additional) return;
-            const used = self.items.len;
-            const needed = used + additional;
-            const doubled = self.capacity *| 2; // saturating
-            const new_cap = @max(doubled, needed);
-            const alloc = try a.realloc(self.items.ptr[0..self.capacity], new_cap);
-            self.items = alloc[0..used];
-            self.capacity = alloc.len;
-        }
-
-        pub fn append(self: *Self, a: std.mem.Allocator, v: T) std.mem.Allocator.Error!void {
-            try self.ensureUnusedCapacity(a, 1);
-            self.appendAssumeCapacity(v);
-        }
-
-        pub fn appendAssumeCapacity(self: *Self, v: T) void {
-            self.items.ptr[self.items.len] = v;
-            self.items.len += 1;
-        }
-
-        pub fn appendSlice(self: *Self, a: std.mem.Allocator, s: []const T) std.mem.Allocator.Error!void {
-            try self.ensureUnusedCapacity(a, s.len);
-            self.appendSliceAssumeCapacity(s);
-        }
-
-        pub fn appendSliceAssumeCapacity(self: *Self, s: []const T) void {
-            @memcpy(self.items.ptr[self.items.len..][0..s.len], s);
-            self.items.len += s.len;
-        }
-
-        pub fn slice(self: *const Self) []const T {
-            return self.items;
-        }
-
-        pub fn clear(self: *Self) void {
-            self.items.len = 0;
-        }
-    };
-}
-
 /// Fixed-capacity ordered set: `push` skips duplicates and preserves
-/// insertion order. Backed by caller-provided arrays, like `Buf` but static.
+/// insertion order. Backed by caller-provided arrays and has no allocator.
 pub const Set = struct {
     flags: []bool,
     items: []usize,
@@ -187,14 +125,14 @@ pub fn closeFd(fd: std.posix.socket_t) void {
     _ = std.posix.system.close(fd);
 }
 
-pub fn writeIntLe(comptime T: type, a: std.mem.Allocator, buf: *Buf(u8), v: T) std.mem.Allocator.Error!void {
+pub fn writeIntLe(comptime T: type, a: std.mem.Allocator, buf: *std.ArrayList(u8), v: T) std.mem.Allocator.Error!void {
     try buf.ensureUnusedCapacity(a, @sizeOf(T));
     var bytes: [@sizeOf(T)]u8 = undefined;
     std.mem.writeInt(T, &bytes, v, .little);
     buf.appendSliceAssumeCapacity(&bytes);
 }
 
-pub fn writeString(a: std.mem.Allocator, buf: *Buf(u8), s: []const u8) std.mem.Allocator.Error!void {
+pub fn writeString(a: std.mem.Allocator, buf: *std.ArrayList(u8), s: []const u8) std.mem.Allocator.Error!void {
     var len = s.len;
     while (len >= 0x80) {
         try buf.append(a, @as(u8, @intCast(len & 0x7F)) | 0x80);
@@ -206,7 +144,7 @@ pub fn writeString(a: std.mem.Allocator, buf: *Buf(u8), s: []const u8) std.mem.A
 
 test "reader little-endian and strings" {
     const a = std.testing.allocator;
-    var buf = try Buf(u8).init(a, 64);
+    var buf = try std.ArrayList(u8).initCapacity(a, 64);
     defer buf.deinit(a);
     try buf.append(a, 0x78);
     try buf.append(a, 0x56);
@@ -214,32 +152,32 @@ test "reader little-endian and strings" {
     try buf.append(a, 0x12);
     try buf.append(a, 3); // string length 3
     try buf.appendSlice(a, "abc");
-    var r = Reader.init(buf.slice());
+    var r = Reader.init(buf.items);
     try std.testing.expectEqual(@as(u32, 0x12345678), try r.readU32());
     try std.testing.expectEqualStrings("abc", try r.readString());
 }
 
 test "buf grows and keeps contents" {
     const a = std.testing.allocator;
-    var buf = try Buf(i32).init(a, 2);
+    var buf = try std.ArrayList(i32).initCapacity(a, 2);
     defer buf.deinit(a);
     try buf.appendSlice(a, &.{ 1, 2, 3, 4, 5 });
-    try std.testing.expectEqualSlices(i32, &.{ 1, 2, 3, 4, 5 }, buf.slice());
-    buf.clear();
+    try std.testing.expectEqualSlices(i32, &.{ 1, 2, 3, 4, 5 }, buf.items);
+    buf.clearRetainingCapacity();
     try buf.append(a, 42);
-    try std.testing.expectEqualSlices(i32, &.{42}, buf.slice());
+    try std.testing.expectEqualSlices(i32, &.{42}, buf.items);
 }
 
 test "writer helpers match BinaryWriter" {
     const a = std.testing.allocator;
-    var buf = try Buf(u8).init(a, 64);
+    var buf = try std.ArrayList(u8).initCapacity(a, 64);
     defer buf.deinit(a);
     try writeIntLe(i32, a, &buf, -123456);
     try writeString(a, &buf, "ok");
     try writeString(a, &buf, "");
     try writeString(a, &buf, "x" ** 300);
 
-    var r = Reader.init(buf.slice());
+    var r = Reader.init(buf.items);
     try std.testing.expectEqual(@as(i32, -123456), try r.readI32());
     try std.testing.expectEqualStrings("ok", try r.readString());
     try std.testing.expectEqualStrings("", try r.readString());
@@ -262,7 +200,7 @@ test "7-bit lengths match C# Write7BitEncodedInt" {
         const payload = try a.alloc(u8, c.len);
         defer a.free(payload);
         @memset(payload, 'x');
-        var buf = try Buf(u8).init(a, c.len + 8);
+        var buf = try std.ArrayList(u8).initCapacity(a, c.len + 8);
         defer buf.deinit(a);
         try writeString(a, &buf, payload);
         try std.testing.expectEqualSlices(u8, c.bytes, buf.items[0..c.bytes.len]);
@@ -274,31 +212,31 @@ test "7-bit length decode rejects overlong forms" {
     const a = std.testing.allocator;
 
     // Simple single-byte length still decodes.
-    var buf = try Buf(u8).init(a, 256);
+    var buf = try std.ArrayList(u8).initCapacity(a, 256);
     defer buf.deinit(a);
     try buf.append(a, 0x7F);
     try buf.appendSlice(a, "x" ** 127);
-    var r = Reader.init(buf.slice());
+    var r = Reader.init(buf.items);
     try std.testing.expectEqual(@as(usize, 127), (try r.readString()).len);
 
     // 5-byte form with the maximal 4-bit tail is valid (then runs out of data).
-    var b5 = try Buf(u8).init(a, 16);
+    var b5 = try std.ArrayList(u8).initCapacity(a, 16);
     defer b5.deinit(a);
     try b5.appendSlice(a, &.{ 0x80, 0x80, 0x80, 0x80, 0x0F });
-    var r5 = Reader.init(b5.slice());
+    var r5 = Reader.init(b5.items);
     try std.testing.expectError(error.UnexpectedEof, r5.readString());
 
     // 5th byte above 0x0F is rejected (C# FormatException).
-    var b6 = try Buf(u8).init(a, 16);
+    var b6 = try std.ArrayList(u8).initCapacity(a, 16);
     defer b6.deinit(a);
     try b6.appendSlice(a, &.{ 0x80, 0x80, 0x80, 0x80, 0x10 });
-    var r6 = Reader.init(b6.slice());
+    var r6 = Reader.init(b6.items);
     try std.testing.expectError(error.InvalidLength, r6.readString());
 
     // 6-byte encodings are rejected outright.
-    var b7 = try Buf(u8).init(a, 16);
+    var b7 = try std.ArrayList(u8).initCapacity(a, 16);
     defer b7.deinit(a);
     try b7.appendSlice(a, &.{ 0x80, 0x80, 0x80, 0x80, 0x80, 0x00 });
-    var r7 = Reader.init(b7.slice());
+    var r7 = Reader.init(b7.items);
     try std.testing.expectError(error.InvalidLength, r7.readString());
 }

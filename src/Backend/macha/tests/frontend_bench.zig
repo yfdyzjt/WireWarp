@@ -9,7 +9,7 @@ const hash_size = util.HASH_SIZE;
 const Mock = struct {
     fd: std.posix.socket_t,
     a: std.mem.Allocator,
-    buf: util.Buf(u8),
+    buf: std.ArrayList(u8),
     send_id: i64,
     last_id: i64,
 
@@ -26,10 +26,10 @@ const Mock = struct {
     }
 
     fn syncTo(self: *Mock, world_hash: *const [hash_size]u8, world_path: []const u8) !void {
-        var body = try util.Buf(u8).init(self.a, 512);
+        var body = try std.ArrayList(u8).initCapacity(self.a, 512);
         try body.appendSlice(self.a, world_hash);
         try util.writeString(self.a, &body, world_path);
-        try self.request(.sync_to, body.slice());
+        try self.request(.sync_to, body.items);
     }
 };
 
@@ -121,7 +121,7 @@ pub fn main(init: std.process.Init) !void {
     var mock = Mock{
         .fd = conn,
         .a = arena,
-        .buf = try util.Buf(u8).init(arena, 4096),
+        .buf = try std.ArrayList(u8).initCapacity(arena, 4096),
         .send_id = 0,
         .last_id = 0,
     };
@@ -129,7 +129,7 @@ pub fn main(init: std.process.Init) !void {
     try mock.request(.startup, &.{});
 
     var rng = std.Random.DefaultPrng.init(42);
-    var frame_buf = try util.Buf(u8).init(arena, 64);
+    var frame_buf = try std.ArrayList(u8).initCapacity(arena, 64);
     const latencies = try arena.alloc(u64, events);
     var outputs: u64 = 0;
 
@@ -137,7 +137,7 @@ pub fn main(init: std.process.Init) !void {
     while (i < events) : (i += 1) {
         const port = pool.pickPort(rng.random()).?;
 
-        frame_buf.clear();
+        frame_buf.clearRetainingCapacity();
         try frame_buf.append(arena, 1); // run
         try util.writeIntLe(i64, arena, &frame_buf, @intCast(i)); // tick
         try util.writeIntLe(i32, arena, &frame_buf, 1); // one input
@@ -146,7 +146,7 @@ pub fn main(init: std.process.Init) !void {
 
         const t0 = std.Io.Clock.now(.awake, io);
         mock.send_id += 1;
-        try protocol.writeMessage(conn, .frame, mock.send_id, frame_buf.slice());
+        try protocol.writeMessage(conn, .frame, mock.send_id, frame_buf.items);
         const msg = (try protocol.readMessage(conn, arena, &mock.buf)) orelse
             return error.ConnectionClosed;
         const t1 = std.Io.Clock.now(.awake, io);

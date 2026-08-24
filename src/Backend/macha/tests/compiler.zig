@@ -9,7 +9,7 @@ const compile = macha.compiler.compile;
 const testing = std.testing;
 const Node = files.WiringFile.Node;
 
-fn serNodes(buf: *util.Buf(u8), a: std.mem.Allocator, nodes: []const Node) !void {
+fn serNodes(buf: *std.ArrayList(u8), a: std.mem.Allocator, nodes: []const Node) !void {
     var tmp: [4]u8 = undefined;
     std.mem.writeInt(i32, &tmp, @intCast(nodes.len), .little);
     try buf.appendSlice(a, &tmp);
@@ -34,7 +34,7 @@ fn serializeWiring(
     gates: []const Node,
     wires: []const Node,
 ) ![]const u8 {
-    var buf = try util.Buf(u8).init(a, 4096);
+    var buf = try std.ArrayList(u8).initCapacity(a, 4096);
     var tmp: [4]u8 = undefined;
     std.mem.writeInt(u32, &tmp, util.MAGIC, .little);
     try buf.appendSlice(a, &tmp);
@@ -63,7 +63,7 @@ fn serializeWiring(
         const off = table_pos + i * 4;
         std.mem.writeInt(u32, buf.items[off..][0..4], s, .little);
     }
-    return buf.slice();
+    return buf.items;
 }
 
 test "compile: classes and targets" {

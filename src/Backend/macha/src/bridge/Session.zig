@@ -34,10 +34,10 @@ loaded: ?struct {
     warned_ports: std.AutoHashMapUnmanaged(i32, void),
 } = null,
 
-frame_out: util.Buf(u8), // RLE-packed Frame acknowledgment payload
-out_buf: util.Buf(i32), // per-frame raw output port ids
-pairs_buf: util.Buf(u64), // (port, count) run pairs while packing
-sync_from_buf: util.Buf(u8),
+frame_out: std.ArrayList(u8), // RLE-packed Frame acknowledgment payload
+out_buf: std.ArrayList(i32), // per-frame raw output port ids
+pairs_buf: std.ArrayList(u64), // (port, count) run pairs while packing
+sync_from_buf: std.ArrayList(u8),
 
 pub const Ack = struct {
     status: i32,
@@ -48,10 +48,10 @@ pub const Ack = struct {
 pub fn init(a: std.mem.Allocator) std.mem.Allocator.Error!Session {
     return .{
         .alloc = a,
-        .frame_out = try util.Buf(u8).init(a, 256),
-        .out_buf = try util.Buf(i32).init(a, 64),
-        .pairs_buf = try util.Buf(u64).init(a, 64),
-        .sync_from_buf = try util.Buf(u8).init(a, 64),
+        .frame_out = try std.ArrayList(u8).initCapacity(a, 256),
+        .out_buf = try std.ArrayList(i32).initCapacity(a, 64),
+        .pairs_buf = try std.ArrayList(u64).initCapacity(a, 64),
+        .sync_from_buf = try std.ArrayList(u8).initCapacity(a, 64),
     };
 }
 
@@ -139,10 +139,10 @@ pub fn startup(self: *Session) Error!void {
 pub fn syncFrom(self: *Session) Error![]const u8 {
     if (self.loaded == null) return error.NotSynced;
     const l = &self.loaded.?;
-    self.sync_from_buf.clear();
+    self.sync_from_buf.clearRetainingCapacity();
     try self.sync_from_buf.appendSlice(self.alloc, l.hash[0..]);
     try util.writeString(self.alloc, &self.sync_from_buf, l.path);
-    return self.sync_from_buf.slice();
+    return self.sync_from_buf.items;
 }
 
 pub fn reset(self: *Session) Error!void {
@@ -155,7 +155,7 @@ pub fn reset(self: *Session) Error!void {
 pub fn frame(self: *Session, body: []const u8) Error![]const u8 {
     const req = try parseFrameBody(self.alloc, body);
     defer self.alloc.free(req.inputs);
-    self.out_buf.clear();
+    self.out_buf.clearRetainingCapacity();
 
     if (req.run) {
         if (self.loaded == null) return error.NotSynced;
@@ -176,8 +176,8 @@ pub fn frame(self: *Session, body: []const u8) Error![]const u8 {
         std.debug.print("frame tick {d}: paused, ignoring {d} input events\n", .{ req.tick, req.inputs.len });
     }
 
-    try packOutputsRle(self.alloc, &self.frame_out, &self.pairs_buf, self.out_buf.slice());
-    return self.frame_out.slice();
+    try packOutputsRle(self.alloc, &self.frame_out, &self.pairs_buf, self.out_buf.items);
+    return self.frame_out.items;
 }
 
 pub fn dispatch(self: *Session, io: std.Io, t: protocol.Tag, body: []const u8) Ack {
@@ -268,8 +268,8 @@ fn parseFrameBody(a: std.mem.Allocator, body: []const u8) Error!struct {
 }
 
 /// `pairs` packs port in the low 32 bits and count in the high 32 bits.
-fn packOutputsRle(a: std.mem.Allocator, out: *util.Buf(u8), pairs: *util.Buf(u64), outputs: []const i32) std.mem.Allocator.Error!void {
-    pairs.clear();
+fn packOutputsRle(a: std.mem.Allocator, out: *std.ArrayList(u8), pairs: *std.ArrayList(u64), outputs: []const i32) std.mem.Allocator.Error!void {
+    pairs.clearRetainingCapacity();
     for (outputs) |port| {
         if (pairs.items.len > 0) {
             const last = &pairs.items[pairs.items.len - 1];
@@ -281,9 +281,9 @@ fn packOutputsRle(a: std.mem.Allocator, out: *util.Buf(u8), pairs: *util.Buf(u64
         try pairs.append(a, @as(u64, @as(u32, @bitCast(port))) | (@as(u64, 1) << 32));
     }
 
-    out.clear();
+    out.clearRetainingCapacity();
     try util.writeIntLe(i32, a, out, @intCast(pairs.items.len));
-    for (pairs.slice()) |p| {
+    for (pairs.items) |p| {
         try util.writeIntLe(i32, a, out, @bitCast(@as(u32, @truncate(p))));
         try util.writeIntLe(i32, a, out, @bitCast(@as(u32, @truncate(p >> 32))));
     }
@@ -306,11 +306,11 @@ test "sync body roundtrip" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
-    var buf = try util.Buf(u8).init(a, 128);
+    var buf = try std.ArrayList(u8).initCapacity(a, 128);
     const hash = [_]u8{0xAB} ** hash_size;
     try buf.appendSlice(a, &hash);
     try util.writeString(a, &buf, "/worlds/My World.wld");
-    const sync = try parseSyncBody(buf.slice());
+    const sync = try parseSyncBody(buf.items);
     try testing.expectEqualSlices(u8, &hash, &sync.hash);
     try testing.expectEqualStrings("/worlds/My World.wld", sync.path);
 }
@@ -324,7 +324,7 @@ test "frame body roundtrip" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
-    var buf = try util.Buf(u8).init(a, 128);
+    var buf = try std.ArrayList(u8).initCapacity(a, 128);
     try buf.append(a, 1); // run
     try util.writeIntLe(i64, a, &buf, 1234);
     try util.writeIntLe(i32, a, &buf, 2);
@@ -332,7 +332,7 @@ test "frame body roundtrip" {
     try util.writeIntLe(i32, a, &buf, 3);
     try util.writeIntLe(i32, a, &buf, 9);
     try util.writeIntLe(i32, a, &buf, 1);
-    const req = try parseFrameBody(a, buf.slice());
+    const req = try parseFrameBody(a, buf.items);
     try testing.expect(req.run);
     try testing.expectEqual(@as(i64, 1234), req.tick);
     try testing.expectEqual(@as(usize, 2), req.inputs.len);
@@ -343,23 +343,23 @@ test "frame body rejects bad counts" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
-    var buf = try util.Buf(u8).init(a, 128);
+    var buf = try std.ArrayList(u8).initCapacity(a, 128);
     try buf.append(a, 1);
     try util.writeIntLe(i64, a, &buf, 0);
     try util.writeIntLe(i32, a, &buf, 1);
     try util.writeIntLe(i32, a, &buf, 5);
     try util.writeIntLe(i32, a, &buf, 0);
-    try testing.expectError(error.BadCount, parseFrameBody(a, buf.slice()));
+    try testing.expectError(error.BadCount, parseFrameBody(a, buf.items));
 }
 
 test "outputs rle" {
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const a = arena.allocator();
-    var out = try util.Buf(u8).init(a, 64);
-    var pairs = try util.Buf(u64).init(a, 64);
+    var out = try std.ArrayList(u8).initCapacity(a, 64);
+    var pairs = try std.ArrayList(u64).initCapacity(a, 64);
     try packOutputsRle(a, &out, &pairs, &.{ 7, 7, 9, 7 });
-    var r = util.Reader.init(out.slice());
+    var r = util.Reader.init(out.items);
     try testing.expectEqual(@as(i32, 3), try r.readI32());
     try testing.expectEqual(@as(i32, 7), try r.readI32());
     try testing.expectEqual(@as(i32, 2), try r.readI32());
@@ -383,11 +383,11 @@ test "unstarted requests fail cleanly" {
     try testing.expectEqual(@as(i32, 1), ack.status);
     try testing.expect(std.mem.indexOf(u8, ack.message, "synced") != null);
 
-    var buf = try util.Buf(u8).init(arena.allocator(), 64);
+    var buf = try std.ArrayList(u8).initCapacity(arena.allocator(), 64);
     try buf.append(arena.allocator(), 1);
     try util.writeIntLe(i64, arena.allocator(), &buf, 0);
     try util.writeIntLe(i32, arena.allocator(), &buf, 0);
-    const ack2 = s.dispatch(io, .frame, buf.slice());
+    const ack2 = s.dispatch(io, .frame, buf.items);
     try testing.expectEqual(@as(i32, 1), ack2.status);
 
     const ack3 = s.dispatch(io, .shutdown, &.{});

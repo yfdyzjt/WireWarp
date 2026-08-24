@@ -200,7 +200,7 @@ test "parses a minimal wiring file" {
     defer arena.deinit();
     const a = arena.allocator();
 
-    var buf = try util.Buf(u8).init(a, 4096);
+    var buf = try std.ArrayList(u8).initCapacity(a, 4096);
     var int_buf: [4]u8 = undefined;
     std.mem.writeInt(u32, &int_buf, util.MAGIC, .little);
     try buf.appendSlice(a, &int_buf);
@@ -242,7 +242,7 @@ test "parses a minimal wiring file" {
         std.mem.writeInt(u32, buf.items[off..][0..4], s, .little);
     }
 
-    const parsed = try parseWiring(a, buf.slice());
+    const parsed = try parseWiring(a, buf.items);
     try std.testing.expectEqual(@as(usize, 1), parsed.input_ports.len);
     try std.testing.expectEqual(@as(i32, 0), parsed.input_ports[0].id);
     try std.testing.expectEqual(@as(usize, 1), parsed.input_ports[0].fanout.len);
