@@ -1,0 +1,9 @@
+# Integrating V4.2 into upstream
+
+This source archive uses a consolidated root layout (`WireWarp/`, `macha/`, sibling test projects). It is not an automatically generated merge against the current upstream Git checkout. Preserve the original repository and its history. The older `src/` layout and any reference or shared implementations require explicit review with the maintainer; do not blindly delete them or leave ambiguous duplicate active builds.
+
+1. In GitHub Desktop, fetch and pull the upstream default branch, then create `release/v4.2` from it.
+2. Extract the clean final source package separately. Copy its files into the clone, preserving `.git`. Review migration of existing `src/` components and build/editor paths; if retaining reference code, document its role and update its paths as needed.
+3. Review all changes, deletions, license scope and third-party notices. The package includes a generic `macha/src/core/AotGenerated.zig` placeholder. Never commit a locally specialized copy, calibrated profiles, world exports, private logs, binaries, or reference game source. `.gitignore` does not untrack already tracked files. SHA256SUMS.txt describes this distribution, not the entire upstream tree; regenerate it or remove it from the merged repo if migration changes paths.
+4. Test a separate copy of the integrated tree. Running validation or Setup may modify generated source, so use the clean source for Git. Confirm version 0.1.11 and the live fast/V4.1 modes, clean closure and matching digests.
+5. Commit the reviewed changes to the release branch. Only publish once rights review is complete: the branch itself is public. Open a pull request into the upstream default branch, request review, and merge after approval. Tag the merged commit `v4.2` and publish release notes (RELEASE-NOTES.md). No remote changes have been performed by preparing this package.
