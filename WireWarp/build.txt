@@ -1,0 +1,3 @@
+displayName = WireWarp
+author = yfdyzjt, RussDev7
+version = 4.2.0

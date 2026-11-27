@@ -1,28 +1,27 @@
-# temporary file
-temp/
-
-# .NET
-bin/
-obj/
-*.user
-*.suo
-
-# IDE
-.vs/
-.idea/
-*.DotSettings.user
-
-# Debug
-.vscode/*
-!.vscode/launch.json
-!.vscode/tasks.json
-
-# NuGet
-*.nupkg
-**/packages/
-
-# tModLoader
+**/.zig-cache/
+**/zig-out/
+**/bin/
+**/obj/
+**/__pycache__/
+**/logs/
+**/profiles/*.json
+**/fixtures/*.wwir
+**/fixtures/*.wwio
+**/fixtures/*.generated.zig
+*.wwld
+*.wwir
+*.wwio
+*.wld
+*.twld
 *.tmod
+*.log
+*.exe
+*.dll
 
-# OS
-Thumbs.db
+# Private developer artifacts
+WireWarp-Benchmarks/
+**/WireWarp-Benchmarks/
+*.zip
+*.wwcap
+*.twld.bak
+*.wld.bak

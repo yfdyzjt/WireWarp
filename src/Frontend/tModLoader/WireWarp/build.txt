@@ -1,4 +1,0 @@
-displayName = WireWarp
-author = yfdyzjt
-version = 0.1.0
-dllReferences = WireWarp.Frontend.Shared
